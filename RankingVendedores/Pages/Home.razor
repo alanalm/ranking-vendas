@@ -1,0 +1,286 @@
+﻿@page "/"
+@using RankingVendedores.ViewModels
+@using Ranking.Aplicacao.DTOs
+@inject RankingViewModel RankingViewModel
+@inject FuncionarioViewModel FuncionarioViewModel
+@inject ISnackbar Snackbar
+
+<PageTitle>Dashboard - Sistema de Ranking de Vendas</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
+    <!-- Cabeçalho -->
+    <MudGrid AlignItems="Center" Class="mb-4">
+        <MudItem xs="12" md="8">
+            <MudText Typo="Typo.h3" GutterBottom="true">
+                <MudIcon Icon="@Icons.Material.Filled.Dashboard" Class="mr-3" />
+                Dashboard
+            </MudText>
+            <MudText Typo="Typo.subtitle1" Color="Color.Secondary">
+                Visão geral do desempenho de vendas
+            </MudText>
+        </MudItem>
+        <MudItem xs="12" md="4" Class="text-right">
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Última atualização: @DateTime.Now.ToString("dd/MM/yyyy HH:mm")
+            </MudText>
+        </MudItem>
+    </MudGrid>
+
+    <!-- Cards de Estatísticas Principais -->
+    @if (RankingViewModel.Estatisticas != null)
+    {
+        <MudGrid Class="mb-6">
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard Class="pa-4" Style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    <MudCardContent Class="text-center pa-0">
+                        <MudIcon Icon="@Icons.Material.Filled.People" Style="font-size: 3rem;" Class="mb-2" />
+                        <MudText Typo="Typo.h3">@RankingViewModel.Estatisticas.TotalFuncionarios</MudText>
+                        <MudText Typo="Typo.body1">Funcionários Ativos</MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard Class="pa-4" Style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white;">
+                    <MudCardContent Class="text-center pa-0">
+                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Style="font-size: 3rem;" Class="mb-2" />
+                        <MudText Typo="Typo.h3">@RankingViewModel.Estatisticas.FuncionariosQueAtingiramMetas</MudText>
+                        <MudText Typo="Typo.body1">Atingiram Metas</MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard Class="pa-4" Style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white;">
+                    <MudCardContent Class="text-center pa-0">
+                        <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Style="font-size: 3rem;" Class="mb-2" />
+                        <MudText Typo="Typo.h3">@RankingViewModel.Estatisticas.MediaDesempenho.ToString("F1")%</MudText>
+                        <MudText Typo="Typo.body1">Desempenho Médio</MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard Class="pa-4" Style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white;">
+                    <MudCardContent Class="text-center pa-0">
+                        <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Style="font-size: 3rem;" Class="mb-2" />
+                        <MudText Typo="Typo.h3">@FormatarValorCompacto(RankingViewModel.Estatisticas.TotalVendas)</MudText>
+                        <MudText Typo="Typo.body1">Total de Vendas</MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+    }
+
+    <MudGrid>
+        <!-- Top 5 Funcionários -->
+        <MudItem xs="12" md="8">
+            <MudCard Class="mb-4" Style="height: 100%;">
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">
+                            <MudIcon Icon="@Icons.Material.Filled.EmojiEvents" Class="mr-2" />
+                            Top 5 Funcionários - @RankingViewModel.ObterDescricaoPeriodo()
+                        </MudText>
+                    </CardHeaderContent>
+                    <CardHeaderActions>
+                        <MudButton Href="/ranking" 
+                                   Color="Color.Primary" 
+                                   Variant="Variant.Text" 
+                                   Size="Size.Large"
+                                   EndIcon="@Icons.Material.Filled.ArrowForward">
+                            Ver Ranking Completo
+                        </MudButton>
+                    </CardHeaderActions>
+                </MudCardHeader>
+                <MudCardContent>
+                    @if (RankingViewModel.Ranking.Any())
+                    {
+                        @foreach (var funcionario in RankingViewModel.Ranking.Take(5))
+                        {
+                            <MudGrid AlignItems="Center" Class="mb-3">
+                                <MudItem xs="1">
+                                    <MudChip T="string" Color="@ObterCorPosicao(funcionario.Posicao)" Size="Size.Small">
+                                        @funcionario.Posicao°
+                                    </MudChip>
+                                </MudItem>
+                                <MudItem xs="4">
+                                    <MudText Typo="Typo.body1">@funcionario.Funcionario.Nome</MudText>
+                                </MudItem>
+                                <MudItem xs="3">
+                                     <MudText Typo="Typo.h6" Color="@ObterCorDesempenho(funcionario.Desempenho.Geral)">
+                                        @funcionario.Desempenho.Geral.ToString("F2")%
+                                    </MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        @(funcionario.Desempenho.Geral < 100 ? "Meta não atingida" : "Meta superada")
+                                    </MudText>
+                                </MudItem>
+                                <MudItem xs="2">
+                                    <MudText Typo="Typo.body2">@funcionario.Desempenho.Geral.ToString("F1")%</MudText>
+                                </MudItem>
+                                <MudItem xs="2">
+                                    @if (funcionario.Desempenho.AtingiuTodasAsMetas)
+                                    {
+                                        <MudChip T="string" Color="Color.Success" Size="Size.Small" Icon="@Icons.Material.Filled.CheckCircle">
+                                            Meta OK
+                                        </MudChip>
+                                    }
+                                    else
+                                    {
+                                        <MudChip T="string" Color="Color.Error" Size="Size.Small" Icon="@Icons.Material.Filled.Cancel">
+                                            Pendente
+                                        </MudChip>
+                                    }
+                                </MudItem>
+                            </MudGrid>
+                            @if (funcionario != RankingViewModel.Ranking.Take(5).Last())
+                            {
+                                <MudDivider />
+                            }
+                        }
+                    }
+                    else
+                    {
+                        <MudAlert Severity="Severity.Info">
+                            <MudText>Nenhum dado de ranking disponível.</MudText>
+                            <MudButton Href="/metas" Color="Color.Primary" Variant="Variant.Text" Class="mt-2">
+                                Configurar Metas
+                            </MudButton>
+                        </MudAlert>
+                    }
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <!-- Ações Rápidas -->
+        <MudItem xs="12" md="4">
+            <MudCard Class="mb-4">
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">
+                            <MudIcon Icon="@Icons.Material.Filled.Speed" Class="mr-2" />
+                            Ações Rápidas
+                        </MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent>
+                    <MudStack Spacing="2">
+                        <MudButton Href="/vendas" 
+                                   Color="Color.Primary" 
+                                   Variant="Variant.Filled" 
+                                   FullWidth="true"
+                                   StartIcon="@Icons.Material.Filled.Add">
+                            Registrar Venda
+                        </MudButton>
+                        <MudButton Href="/funcionarios" 
+                                   Color="Color.Secondary" 
+                                   Variant="Variant.Outlined" 
+                                   FullWidth="true"
+                                   StartIcon="@Icons.Material.Filled.PersonAdd">
+                            Novo Funcionário
+                        </MudButton>
+                        <MudButton Href="/metas" 
+                                   Color="Color.Info" 
+                                   Variant="Variant.Outlined" 
+                                   FullWidth="true"
+                                   StartIcon="@Icons.Material.Filled.Flag">
+                            Configurar Metas
+                        </MudButton>
+                        <MudButton Href="/relatorios" 
+                                   Color="Color.Tertiary" 
+                                   Variant="Variant.Outlined" 
+                                   FullWidth="true"
+                                   StartIcon="@Icons.Material.Filled.Analytics">
+                            Ver Relatórios
+                        </MudButton>
+                    </MudStack>
+                </MudCardContent>
+            </MudCard>
+
+            <!-- Resumo do Sistema -->
+            <MudCard>
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">
+                            <MudIcon Icon="@Icons.Material.Filled.Info" Class="mr-2" />
+                            Resumo do Sistema
+                        </MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent>
+                    <MudList Dense="true" T="string">
+                        <MudListItem Icon="@Icons.Material.Filled.People" 
+                                     Text="@($"{FuncionarioViewModel.Funcionarios.Count} funcionários cadastrados")" />
+                        <MudListItem Icon="@Icons.Material.Filled.Assessment" 
+                                     Text="2 indicadores configurados" />
+                        <MudListItem Icon="@Icons.Material.Filled.Flag" 
+                                     Text="Metas ativas para o período" />
+                        <MudListItem Icon="@Icons.Material.Filled.Update" 
+                                     Text="Sistema atualizado em tempo real" />
+                    </MudList>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+
+    <!-- Alertas e Notificações -->
+    @if (!RankingViewModel.ExistemMetasAtivas)
+    {
+        <MudAlert Severity="Severity.Warning" Class="mt-4">
+            <MudText Typo="Typo.h6">Configuração Necessária</MudText>
+            <MudText>Para começar a usar o sistema de ranking, você precisa configurar as metas para os indicadores.</MudText>
+            <MudButton Href="/metas" Color="Color.Primary" Variant="Variant.Text" Class="mt-2">
+                Configurar Metas Agora
+            </MudButton>
+        </MudAlert>
+    }
+
+    <!-- Loading -->
+    @if (RankingViewModel.EstaCarregando)
+    {
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mt-4" />
+    }
+</MudContainer>
+
+@code {
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Carregar dados iniciais
+            await Task.WhenAll(
+                RankingViewModel.CarregarRankingPeriodoAtualAsync(),
+                FuncionarioViewModel.CarregarFuncionariosAsync()
+            );
+    }
+
+    private Color ObterCorPosicao(int posicao)
+    {
+        return posicao switch
+        {
+            1 => Color.Warning,
+            2 => Color.Secondary,
+            3 => Color.Tertiary,
+            _ => Color.Default
+        };
+    }
+
+    private Color ObterCorDesempenho(decimal desempenho)
+    {
+        return desempenho switch
+        {
+            >= 100 => Color.Success,
+            >= 80 => Color.Info,
+            >= 60 => Color.Warning,
+            _ => Color.Error
+        };
+    }
+
+    public static string FormatarValorCompacto(decimal valor)
+    {
+        if (valor >= 1_000_000_000)
+            return $"R$ {(valor / 1_000_000_000M):0.##}B";
+        if (valor >= 1_000_000)
+            return $"R$ {(valor / 1_000_000M):0.##}M";
+        if (valor >= 1_000)
+            return $"R$ {(valor / 1_000M):0.##}K";
+        return valor.ToString("C0");
+    }
+
+}

@@ -1,0 +1,165 @@
+﻿@inject ISnackbar Snackbar
+@using Ranking.Aplicacao.Interfaces
+@using RankingVendedores.ViewModels
+@using MudBlazor
+@using Aplicacao.Utils
+@using System.ComponentModel.DataAnnotations
+
+<MudDialog>
+    <DialogContent>
+        @if (ViewModel.MetaEdicao != null)
+        {
+            <EditForm Model="MetaSelecionada" OnValidSubmit="SalvarAsync">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <MudText Typo="Typo.h6" Class="mb-4">
+                    @(ViewModel.MetaEdicao?.Id == 0 ? "Nova Meta" : "Editar Meta")
+                </MudText>
+
+                <MudGrid>
+                    <MudItem xs="12">
+                        <MudSelect T="int" Label="Indicador"
+                                   @bind-Value="IndicadorId"
+                                   Required="true"
+                                   Margin="Margin.Dense">
+                            @foreach (var indicador in ViewModel.IndicadoresDisponiveis)
+                            {
+                                <MudSelectItem T="int" Value="indicador.Id">@indicador.Nome</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudTextField T="decimal" Label="Valor" @bind-Value="Valor" Required="true" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudDatePicker Label="Data Início" @bind-Date="DataInicio" Required="true" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudDatePicker Label="Data Fim" @bind-Date="DataFim" />
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudCheckBox T="bool" @bind-value="Ativa" Label="Ativa" />
+                    </MudItem>
+
+                    @if (!string.IsNullOrWhiteSpace(_mensagemErro))
+                    {
+                        <MudItem xs="12">
+                            <MudText Color="Color.Error">@_mensagemErro</MudText>
+                        </MudItem>
+                    }
+                </MudGrid>
+
+                <MudStack Row Class="mt-4" Spacing="2">
+                    <MudButton ButtonType="ButtonType.Submit" Color="Color.Primary" Variant="Variant.Filled">
+                        @(ViewModel.MetaEdicao?.Id == 0 ? "Criar" : "Atualizar")
+                    </MudButton>
+                    <MudButton OnClick="Cancelar" Color="Color.Secondary" Variant="Variant.Outlined">
+                        Cancelar
+                    </MudButton>
+                </MudStack>
+            </EditForm>
+        }
+        else
+        {
+            <MudProgressCircular Indeterminate="true" Size="Size.Large" Color="Color.Primary" />
+        }
+    </DialogContent>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public MetaViewModel ViewModel { get; set; } = default!;
+
+    private string? _mensagemErro;
+
+    [Parameter] public bool ModoEdicao { get; set; }
+
+    private IMetaEditavel MetaSelecionada => ModoEdicao ? ViewModel.MetaEdicao! : ViewModel.NovaMeta!;
+
+
+    private int IndicadorId
+    {
+        get => ModoEdicao ? ViewModel.MetaEdicao.IndicadorId : ViewModel.NovaMeta.IndicadorId;
+        set
+        {
+            if (ModoEdicao)
+                ViewModel.MetaEdicao.IndicadorId = value;
+            else
+                ViewModel.NovaMeta.IndicadorId = value;
+        }
+    }
+
+    private decimal Valor
+    {
+        get => ModoEdicao ? ViewModel.MetaEdicao.Valor : ViewModel.NovaMeta.Valor;
+        set
+        {
+            if (ModoEdicao)
+                ViewModel.MetaEdicao.Valor = value;
+            else
+                ViewModel.NovaMeta.Valor = value;
+        }
+    }
+
+    private DateTime? DataInicio
+    {
+        get => ModoEdicao ? ViewModel.MetaEdicao.DataInicio : ViewModel.NovaMeta.DataInicio;
+        set
+        {
+            if (ModoEdicao)
+                ViewModel.MetaEdicao.DataInicio = value;
+            else
+                ViewModel.NovaMeta.DataInicio = value;
+        }
+    }
+    private DateTime? DataFim
+    {
+        get => ModoEdicao ? ViewModel.MetaEdicao.DataFim : ViewModel.NovaMeta.DataFim;
+        set
+        {
+            if (ModoEdicao)
+                ViewModel.MetaEdicao.DataFim = value;
+            else
+                ViewModel.NovaMeta.DataFim = value;
+        }
+    }
+
+    private bool Ativa
+    {
+        get => ModoEdicao ? ViewModel.MetaEdicao.Ativa : ViewModel.NovaMeta.Ativa;
+        set
+        {
+            if (ModoEdicao)
+                ViewModel.MetaEdicao.Ativa = value;
+            else
+                ViewModel.NovaMeta.Ativa = value;
+        }
+    }
+
+    private async Task SalvarAsync()
+    {
+        var resultado = ModoEdicao
+           ? await ViewModel.AtualizarMetaAsync()
+           : await ViewModel.CriarMetaAsync();
+
+        if (resultado.Sucesso)
+        {
+            Snackbar.Add(resultado.Mensagem, resultado.Sucesso ? Severity.Success : Severity.Error);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        else 
+        {
+            _mensagemErro = resultado.Mensagem;
+        }
+    }
+
+    private void Cancelar()
+    {
+        MudDialog.Cancel();
+    }
+}

@@ -1,0 +1,330 @@
+﻿@page "/ranking"
+@using RankingVendedores.ViewModels
+@using Ranking.Aplicacao.DTOs
+@using Ranking.Aplicacao.Interfaces
+@using Ranking.Aplicacao
+@using Ranking.Dominio.Enums
+@using RankingVendedores.Services
+@inject IApiService ApiService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject RankingViewModel ViewModel
+
+<PageTitle>Ranking de Funcionários</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
+    <MudText Typo="Typo.h3" GutterBottom="true">
+        <MudIcon Icon="@Icons.Material.Filled.Leaderboard" Class="mr-3" />
+        Ranking de Funcionários
+    </MudText>
+
+    <!-- Filtros -->
+    <MudCard Class="mb-4">
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudText Typo="Typo.h6">Filtros</MudText>
+            </CardHeaderContent>
+        </MudCardHeader>
+        <MudCardContent>
+            <MudGrid>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudDatePicker Label="Data Início" 
+                                   @bind-Date="ViewModel.DataInicio" 
+                                   Placeholder="Selecione a data" />
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudDatePicker Label="Data Fim" 
+                                   @bind-Date="ViewModel.DataFim" 
+                                   Placeholder="Selecione a data" />
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudSelect T="TipoOrdenacaoRanking" 
+                               Label="Ordenação" 
+                               @bind-Value="ViewModel.TipoOrdenacao">
+                        <MudSelectItem Value="TipoOrdenacaoRanking.DesempenhoGeral">Desempenho Geral</MudSelectItem>
+                        <MudSelectItem Value="TipoOrdenacaoRanking.QuantidadeVendas">Quantidade de Vendas</MudSelectItem>
+                        <MudSelectItem Value="TipoOrdenacaoRanking.ValorTotalVendas">Valor Total de Vendas</MudSelectItem>
+                        <MudSelectItem Value="TipoOrdenacaoRanking.PercentualAtingimento">Percentual de Atingimento</MudSelectItem>
+                        <MudSelectItem Value="TipoOrdenacaoRanking.NomeFuncionario">Nome do Funcionário</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3" Class="d-flex align-center">
+                    <MudButtonGroup Color="Color.Primary" Variant="Variant.Outlined">
+                        <MudButton OnClick="AplicarFiltros" 
+                                   StartIcon="@Icons.Material.Filled.FilterList"
+                                   Disabled="ViewModel.EstaCarregando">
+                            Aplicar
+                        </MudButton>
+                        <MudButton OnClick="LimparFiltros" 
+                                   StartIcon="@Icons.Material.Filled.Clear"
+                                   Disabled="ViewModel.EstaCarregando">
+                            Limpar
+                        </MudButton>
+                    </MudButtonGroup>
+                </MudItem>
+            </MudGrid>
+
+            <!-- Filtros Rápidos -->
+            <MudGrid Class="mt-3">
+                <MudItem xs="12">
+                    <MudChipSet T="string">
+                        <MudChip Text="Período Atual" 
+                                 Icon="@Icons.Material.Filled.Today" 
+                                 OnClick="CarregarPeriodoAtual"
+                                 Color="@(ViewModel.ExibindoPeriodoAtual ? Color.Primary : Color.Default)" />
+                        <MudChip Text="Atingiram Metas" 
+                                 Icon="@Icons.Material.Filled.CheckCircle" 
+                                 OnClick="AlternarFiltroAtingiramMetas"
+                                 Color="@(ViewModel.MostrarApenasQueAtingiramMetas ? Color.Success : Color.Default)" />
+                        <MudChip Text="Não Atingiram Metas" 
+                                 Icon="@Icons.Material.Filled.Cancel" 
+                                 OnClick="AlternarFiltroNaoAtingiramMetas"
+                                 Color="@(ViewModel.MostrarApenasQueNaoAtingiramMetas ? Color.Error : Color.Default)" />
+                    </MudChipSet>
+                </MudItem>
+            </MudGrid>
+        </MudCardContent>
+    </MudCard>
+
+    <!-- Estatísticas -->
+    @if (ViewModel.Estatisticas != null)
+    {
+        <MudGrid Class="mb-4">
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard>
+                    <MudCardContent Class="text-center">
+                        <MudText Typo="Typo.h4" Color="Color.Primary">@ViewModel.Estatisticas.TotalFuncionarios</MudText>
+                        <MudText Typo="Typo.body2">Total de Funcionários</MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard>
+                    <MudCardContent Class="text-center">
+                        <MudText Typo="Typo.h4" Color="Color.Success">@ViewModel.Estatisticas.FuncionariosQueAtingiramMetas</MudText>
+                        <MudText Typo="Typo.body2">Atingiram Metas</MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard>
+                    <MudCardContent Class="text-center">
+                        <MudText Typo="Typo.h4" Color="Color.Info">@ViewModel.Estatisticas.MediaDesempenho.ToString("F1")%</MudText>
+                        <MudText Typo="Typo.body2">Desempenho Médio</MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard>
+                    <MudCardContent Class="text-center">
+                        <MudText Typo="Typo.h4" Color="Color.Secondary">@FormatarValorCompacto(ViewModel.Estatisticas.TotalVendas)</MudText>
+                        <MudText Typo="Typo.body2">Total de Vendas</MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+    }
+
+    <!-- Período -->
+    <MudAlert Severity="Severity.Info" Class="mb-4">
+        <MudText>@ViewModel.ObterDescricaoPeriodo()</MudText>
+    </MudAlert>
+
+    <!-- Mensagens -->
+    @if (ViewModel.TemErro)
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-4">@ViewModel.MensagemErro</MudAlert>
+    }
+
+    @if (ViewModel.TemSucesso)
+    {
+        <MudAlert Severity="Severity.Success" Class="mb-4">@ViewModel.MensagemSucesso</MudAlert>
+    }
+
+    <!-- Loading -->
+    @if (ViewModel.EstaCarregando)
+    {
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mb-4" />
+    }
+
+    <!-- Ranking -->
+    @if (!ViewModel.ExistemMetasAtivas)
+    {
+        <MudAlert Severity="Severity.Warning" Class="mb-4">
+            <MudText>Não existem metas ativas para calcular o ranking. Configure as metas primeiro.</MudText>
+            <MudButton Href="/metas" Color="Color.Primary" Variant="Variant.Text" Class="mt-2">
+                Configurar Metas
+            </MudButton>
+        </MudAlert>
+    }
+    else if (ViewModel.Ranking.Any())
+    {
+        <MudTable Items="ViewModel.Ranking" 
+                  Hover="true" 
+                  Striped="true" 
+                  Dense="true"
+                  FixedHeader="true"
+                  Height="600px">
+            <HeaderContent>
+                <MudTh>Posição</MudTh>
+                <MudTh>Funcionário</MudTh>
+                <MudTh>Desempenho Geral</MudTh>
+                <MudTh>Qtd. Vendas</MudTh>
+                <MudTh>Valor Vendas</MudTh>
+                <MudTh>Meta Qtd.</MudTh>
+                <MudTh>Meta Valor</MudTh>
+                <MudTh>Status</MudTh>
+               @*  <MudTh>Ações</MudTh> *@
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Posição">
+                    <MudChip T="string" Color="@ObterCorPosicao(context.Posicao)" Size="Size.Small">
+                        @context.Posicao°
+                    </MudChip>
+                </MudTd>
+                <MudTd DataLabel="Funcionário">
+                    <MudText Typo="Typo.body1">@context.Funcionario.Nome</MudText>
+                </MudTd>
+                <MudTd DataLabel="Desempenho Geral">
+                    <MudText Typo="Typo.h6" Color="@ObterCorDesempenho(context.Desempenho.Geral)">
+                        @context.Desempenho.Geral.ToString("F2")%
+                    </MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        @(context.Desempenho.Geral < 100 ? "Meta não atingida" : "Meta superada")
+                    </MudText>
+                </MudTd>
+                <MudTd DataLabel="Qtd. Vendas">
+                    <MudText>@context.Desempenho.QuantidadeVendas</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        (@context.Desempenho.PercentualQuantidade.ToString("F2")%)
+                    </MudText>
+                </MudTd>
+                <MudTd DataLabel="Valor Vendas">
+                    <MudText>@context.Desempenho.ValorVendas.ToString("C")</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        (@context.Desempenho.PercentualValor.ToString("F2")%)
+                    </MudText>
+                </MudTd>
+                <MudTd DataLabel="Meta Qtd.">@context.Desempenho.MetaQuantidade</MudTd>
+                <MudTd DataLabel="Meta Valor">@context.Desempenho.MetaValor.ToString("C")</MudTd>
+                <MudTd DataLabel="Status">
+                    @if (context.Desempenho.AtingiuTodasAsMetas)
+                    {
+                        <MudChip T="string" Color="Color.Success" Size="Size.Small" Icon="@Icons.Material.Filled.CheckCircle">
+                            Atingiu
+                        </MudChip>
+                    }
+                    else
+                    {
+                        <MudChip T="string" Color="Color.Error" Size="Size.Small" Icon="@Icons.Material.Filled.Cancel">
+                            Não Atingiu
+                        </MudChip>
+                    }
+                </MudTd>
+              @*   <MudTd DataLabel="Ações">
+                    <MudButtonGroup Size="Size.Small" Variant="Variant.Text">
+                        <MudIconButton Icon="@Icons.Material.Filled.Visibility" 
+                                       Color="Color.Primary" 
+                                       OnClick="() => VisualizarDetalhes(context)" />
+                        <MudIconButton Icon="@Icons.Material.Filled.TrendingUp" 
+                                       Color="Color.Info" 
+                                       OnClick="() => VisualizarHistorico(context)" />
+                    </MudButtonGroup>
+                </MudTd> *@
+            </RowTemplate>
+        </MudTable>
+    }
+    else if (!ViewModel.EstaCarregando)
+    {
+        <MudAlert Severity="Severity.Info">
+            <MudText>Nenhum funcionário encontrado para o período selecionado.</MudText>
+        </MudAlert>
+    }
+</MudContainer>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        await ViewModel.CarregarRankingPeriodoAtualAsync();
+        await ViewModel.CarregarRankingAsync();
+        await ViewModel.CarregarEstatisticasAsync();
+    }
+
+    private async Task AplicarFiltros()
+    {
+        await ViewModel.AplicarFiltrosAsync();
+        if (ViewModel.TemErro)
+        {
+            Snackbar.Add(ViewModel.MensagemErro, Severity.Error);
+        }
+    }
+
+    private async Task LimparFiltros()
+    {
+        await ViewModel.LimparFiltrosAsync();
+        Snackbar.Add("Filtros limpos", Severity.Info);
+    }
+
+    private async Task CarregarPeriodoAtual()
+    {
+        await ViewModel.CarregarRankingPeriodoAtualAsync();
+        Snackbar.Add("Ranking do período atual carregado", Severity.Success);
+    }
+
+    private async Task AlternarFiltroAtingiramMetas()
+    {
+        await ViewModel.AlternarFiltroAtingiramMetasAsync();
+    }
+
+    private async Task AlternarFiltroNaoAtingiramMetas()
+    {
+        await ViewModel.AlternarFiltroNaoAtingiramMetasAsync();
+    }
+
+    private Color ObterCorPosicao(int posicao)
+    {
+        return posicao switch
+        {
+            1 => Color.Warning,
+            2 => Color.Secondary,
+            3 => Color.Tertiary,
+            _ => Color.Default
+        };
+    }
+
+    private Color ObterCorDesempenho(decimal desempenho)
+    {
+        return desempenho switch
+        {
+            >= 100 => Color.Success,
+            >= 80 => Color.Info,
+            >= 60 => Color.Warning,
+            _ => Color.Error
+        };
+    }
+
+    private void VisualizarDetalhes(RankingDto funcionario)
+    {
+        ViewModel.SelecionarFuncionario(funcionario);
+        // Implementar modal de detalhes
+        Snackbar.Add($"Detalhes de {funcionario.Funcionario.Nome}", Severity.Info);
+    }
+
+    private void VisualizarHistorico(RankingDto funcionario)
+    {
+        // Implementar navegação para histórico
+        Snackbar.Add($"Histórico de {funcionario.Funcionario.Nome}", Severity.Info);
+    }
+
+    public static string FormatarValorCompacto(decimal valor)
+    {
+        if (valor >= 1_000_000_000)
+            return $"R$ {(valor / 1_000_000_000M):0.##}B";
+        if (valor >= 1_000_000)
+            return $"R$ {(valor / 1_000_000M):0.##}M";
+        if (valor >= 1_000)
+            return $"R$ {(valor / 1_000M):0.##}K";
+        return valor.ToString("C0");
+    }
+}
+

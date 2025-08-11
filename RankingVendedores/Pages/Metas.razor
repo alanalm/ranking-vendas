@@ -1,0 +1,319 @@
+﻿@page "/metas"
+@page "/metas/{indicadorId:int}"
+@using RankingVendedores.ViewModels
+@using MudBlazor
+@using Ranking.Aplicacao.DTOs
+@using Ranking.Aplicacao.Interfaces
+@using Ranking.Aplicacao
+@using Ranking.Dominio.Enums
+@using RankingVendedores.Services
+@inject IApiService ApiService
+@inject IDialogService DialogService
+@inject MetaViewModel ViewModel
+@inject ISnackbar Snackbar
+
+<PageTitle>Metas</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
+    <MudText Typo="Typo.h3" GutterBottom="true" Class="mb-4">
+        <MudIcon Icon="@Icons.Material.Filled.Flag" Class="mr-3" />
+        Metas
+    </MudText>
+
+    <MudCard Class="mb-4">
+        <MudCardContent>
+            <MudGrid AlignItems="Center" Spacing="3">
+                <MudItem xs="12" sm="6" md="6">
+                    <MudTextField @bind-Value="ViewModel.TextoPesquisa"
+                                  Label="Pesquisar metas"
+                                  Variant="Variant.Outlined"
+                                  Placeholder="Digite o nome do indicador ou valor..."
+                                  Immediate="false"
+                                  Adornment="Adornment.End"
+                                  AdornmentIcon="@Icons.Material.Filled.Search"
+                                  OnAdornmentClick="ExecutarPesquisa" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="6" Class="text-right">
+                    <MudButton Color="Color.Primary"
+                               Variant="Variant.Filled"
+                               StartIcon="@Icons.Material.Filled.Add"
+                               OnClick="AbrirModalCriacao"
+                               Disabled="ViewModel.EstaCarregando"
+                               Style="margin-top: 8px;">
+                        Nova Meta
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudCardContent>
+    </MudCard>
+
+    @if (ViewModel.EstaCarregando)
+    {
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mb-4" />
+    }
+    else if (!ViewModel.MetasFiltradas.Any())
+    {
+        <MudAlert Severity="Severity.Info" Class="mb-4">
+            Nenhuma meta encontrada.
+        </MudAlert>
+    }
+    else
+    {
+        <MudTable Items="ViewModel.MetasFiltradas" Hover="true" Breakpoint="Breakpoint.Sm">
+            <HeaderContent>
+                <MudTh>Indicador</MudTh>
+                <MudTh>Valor</MudTh>
+                <MudTh>Data Início</MudTh>
+                <MudTh>Data Fim</MudTh>
+                <MudTh>Ativa</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                @* <MudTd DataLabel="ID">@context.Id</MudTd> *@
+                <MudTd DataLabel="Indicador">@context.NomeIndicador</MudTd>
+                <MudTd DataLabel="Valor">@context.Valor.ToString("C")</MudTd>
+                <MudTd DataLabel="Data Início">@(context.DataInicio?.ToString("dd/MM/yyyy") ?? "N/A")</MudTd>
+                <MudTd DataLabel="Data Fim">@(context.DataFim?.ToString("dd/MM/yyyy") ?? "N/A")</MudTd>
+                <MudTd DataLabel="Ativa">
+                    <MudCheckBox T="bool" UncheckedColor="@Color.Success" 
+                    ReadOnly="true" Color="Color.Primary" Disabled="true" @bind-Value="context.Ativa"/>
+                </MudTd>
+                <MudTd DataLabel="Ações">
+                     <MudButtonGroup Size="Size.Small" Variant="Variant.Text">
+                        <MudMenuItem OnClick="() => AbrirModalEdicao(context)">
+                            <MudIcon Icon="@Icons.Material.Filled.Edit" Class="mr-2" />
+                        </MudMenuItem>
+                        <MudMenuItem OnClick="() => ConfirmarRemocao(context)">
+                            <MudIcon Icon="@Icons.Material.Filled.Delete" Class="mr-2" Color="Color.Error" />
+                            <MudText Color="Color.Error"></MudText>
+                        </MudMenuItem>
+                    </MudButtonGroup>
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText>Nenhuma meta encontrada.</MudText>
+            </NoRecordsContent>
+        </MudTable>
+    }
+</MudContainer>
+
+<!-- Modal Criação -->
+<MudDialog @bind-IsVisible="ViewModel.ModalCriacaoAberto" MaxWidth="MaxWidth.Medium" FullWidth="true" CloseButton="true">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Add" Class="mr-3" />
+            Nova Meta
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudSelect T="int" Label="Indicador" @bind-Value="ViewModel.NovaMeta.IndicadorId" Required="true" RequiredError="O indicador é obrigatório" Dense="true">
+            @foreach (var indicador in ViewModel.IndicadoresDisponiveis)
+            {
+                <MudSelectItem T="int" Value="@indicador.Id">@indicador.Nome</MudSelectItem>
+            }
+        </MudSelect>
+
+        <MudNumericField T="decimal" @bind-Value="ViewModel.NovaMeta.Valor" Label="Valor da Meta" Required="true" Min="1" Variant="Variant.Outlined" Format="C2" Dense="true" />
+
+        <MudDatePicker Label="Data Início" @bind-Date="ViewModel.NovaMeta.DataInicio" Required="true" RequiredError="Data início obrigatória" Dense="true" />
+
+        <MudDatePicker Label="Data Fim (Opcional)" @bind-Date="ViewModel.NovaMeta.DataFim" Dense="true" />
+
+        <MudCheckBox T="bool" @bind-Checked="ViewModel.NovaMeta.Ativa" Label="Meta Ativa" Color="Color.Primary" Dense="true" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="FecharModalCriacao" Disabled="ViewModel.EstaCarregando">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="CriarMeta" Disabled="ViewModel.EstaCarregando">
+            @if (ViewModel.EstaCarregando)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
+                
+                        }
+            else
+            {
+                
+                        }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+<!-- Modal Edição -->
+<MudDialog @bind-IsVisible="ViewModel.ModalEdicaoAberto" MaxWidth="MaxWidth.Medium" FullWidth="true" CloseButton="true">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Edit" Class="mr-3" />
+            Editar Meta
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (ViewModel.MetaEdicao != null)
+        {
+            <MudSelect T="int" Label="Indicador" @bind-Value="ViewModel.MetaEdicao.IndicadorId" Required="true" RequiredError="O indicador é obrigatório" Dense="true">
+                @foreach (var indicador in ViewModel.IndicadoresDisponiveis)
+                {
+                    <MudSelectItem Value="@indicador.Id">@indicador.Nome</MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudNumericField T="decimal" @bind-Value="ViewModel.MetaEdicao.Valor" Label="Valor da Meta" Required="true" Min="1" Variant="Variant.Outlined" Format="C2" Dense="true" />
+
+            <MudDatePicker Label="Data Início" @bind-Date="ViewModel.MetaEdicao.DataInicio" Required="true" RequiredError="Data início obrigatória" Dense="true" />
+
+            <MudDatePicker Label="Data Fim (Opcional)" @bind-Date="ViewModel.MetaEdicao.DataFim" Dense="true" />
+
+            <MudCheckBox T="bool" @bind-Checked="ViewModel.MetaEdicao.Ativa" Label="Meta Ativa" Color="Color.Primary" Dense="true" />
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="FecharModalEdicao" Disabled="ViewModel.EstaCarregando">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="AtualizarMeta" Disabled="ViewModel.EstaCarregando">
+            @if (ViewModel.EstaCarregando)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
+                
+                        }
+            else
+            {
+               
+                        }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [Parameter] public int? indicadorId { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ViewModel.CarregarIndicadoresDisponiveisAsync();
+        await ViewModel.CarregarMetasAsync(indicadorId);
+    }
+
+    private async Task AbrirModalCriacao()
+    {
+        try
+        {
+            ViewModel.AbrirModalCriacao(); 
+
+            // Carrega os indicadores se ainda não estiverem disponíveis
+            if (ViewModel.IndicadoresDisponiveis is null || !ViewModel.IndicadoresDisponiveis.Any())
+                await ViewModel.CarregarIndicadoresDisponiveisAsync();
+
+            var parametros = new DialogParameters
+            {
+                ["ViewModel"] = ViewModel
+            };
+
+            var opcoes = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
+            var dialog = DialogService.Show<MetaModal>("Nova Meta", parametros, opcoes);
+            var resultado = await dialog.Result;
+
+            if (!resultado.Canceled)
+                await ViewModel.CarregarMetasAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("Erro ao abrir modal de criação: " + ex.Message, Severity.Error);
+        }
+    }
+
+    private void FecharModalCriacao()
+    {
+        ViewModel.FecharModalCriacao();
+    }
+
+    private void AbrirModalEdicao(MetaDto meta)
+    {
+        ViewModel.AbrirModalEdicao(meta);
+
+        _ = AbrirDialogAsync("Editar Meta", true);
+    }
+
+    private async Task AbrirDialogAsync(string titulo, bool edicao)
+    {
+        try
+        {
+            if (ViewModel.IndicadoresDisponiveis == null || !ViewModel.IndicadoresDisponiveis.Any())
+                await ViewModel.CarregarIndicadoresDisponiveisAsync();
+
+            var parametros = new DialogParameters
+            {
+                ["ViewModel"] = ViewModel,
+                ["ModoEdicao"] = edicao
+            };
+
+            var opcoes = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+            var dialog = DialogService.Show<MetaModal>(titulo, parametros, opcoes);
+            var resultado = await dialog.Result;
+
+            if (!resultado.Canceled)
+                await ViewModel.CarregarMetasAsync();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro ao abrir modal: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void FecharModalEdicao()
+    {
+        ViewModel.FecharModalEdicao();
+    }
+
+    private async Task CriarMeta()
+    {
+        var resultado = await ViewModel.CriarMetaAsync();
+
+        if (resultado.Sucesso)
+            Snackbar.Add(resultado.Mensagem ?? "Meta criada com sucesso!", Severity.Success);
+        else
+            Snackbar.Add(resultado.Mensagem ?? "Erro ao criar meta", Severity.Error);
+    }
+
+    private async Task AtualizarMeta()
+    {
+        var sucesso = await ViewModel.AtualizarMetaAsync();
+        if (sucesso.Sucesso)
+        {
+            Snackbar.Add("Meta atualizada com sucesso!", Severity.Success);
+            await ViewModel.CarregarMetasAsync(indicadorId);
+            StateHasChanged();
+        }
+        else
+        {
+            Snackbar.Add(ViewModel.MensagemErro ?? "Erro ao atualizar meta", Severity.Error);
+        }
+    }
+
+    private async Task ConfirmarRemocao(MetaDto meta)
+    {
+        var parameters = new DialogParameters
+        {
+            ["ContentText"] = $"Tem certeza que deseja remover a meta de {meta.NomeIndicador} com valor {meta.Valor:C}? Esta ação não pode ser desfeita.",
+            ["ButtonText"] = "Remover",
+            ["Color"] = Color.Error
+        };
+
+        var dialog = DialogService.Show<ConfirmationDialog>("Confirmar Remoção", parameters);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            var sucesso = await ViewModel.RemoverMetaAsync(meta);
+            if (sucesso)
+            {
+                Snackbar.Add("Meta removida com sucesso!", Severity.Success);
+                await ViewModel.CarregarMetasAsync();
+            }
+            else{
+                Snackbar.Add(ViewModel.MensagemErro ?? "Erro ao remover meta", Severity.Error);
+            }
+        }
+    }
+
+    private async Task ExecutarPesquisa()
+    {
+        await ViewModel.PesquisarMetasAsync();
+    }
+}

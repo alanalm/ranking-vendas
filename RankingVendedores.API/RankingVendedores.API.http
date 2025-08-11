@@ -1,0 +1,6 @@
+@RankingVendedores.API_HostAddress = http://localhost:5043
+
+GET {{RankingVendedores.API_HostAddress}} ///weatherforecast/
+Accept: application/json
+
+###

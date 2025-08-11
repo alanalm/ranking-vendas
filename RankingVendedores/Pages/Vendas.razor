@@ -1,0 +1,279 @@
+﻿@page "/vendas"
+@page "/vendas/{funcionarioId:int}"
+@using Aplicacao.Utils
+@using RankingVendedores.ViewModels
+@using Ranking.Aplicacao.DTOs
+@using MudBlazor
+@inject VendaViewModel ViewModel
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>Vendas</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
+    <MudText Typo="Typo.h3" GutterBottom="true">
+        <MudIcon Icon="@Icons.Material.Filled.ShoppingCart" Class="mr-3" />
+        Vendas
+    </MudText>
+
+    <!-- Barra de Ações -->
+    <MudCard Class="mb-4">
+        <MudCardContent>
+            <MudGrid AlignItems="Center" GutterSize="3">
+                <MudItem xs="12" sm="6" md="4">
+                    <MudTextField @bind-Value="ViewModel.TextoPesquisa"
+                                  Label="Pesquisar vendas"
+                                  Variant="Variant.Outlined"
+                                  Adornment="Adornment.Start"
+                                  Immediate="true"
+                                  Class="mb-4"
+                                  AdornmentIcon="@Icons.Material.Filled.Search"
+                                  Placeholder="pesquisar funcionário..." />
+                </MudItem>
+                <MudItem xs="12" sm="6" md="4" Class="text-right">
+                    <MudButton Color="Color.Primary"
+                               Variant="Variant.Filled"
+                               StartIcon="@Icons.Material.Filled.Add"
+                               OnClick="AbrirModalCriacao"
+                               Disabled="ViewModel.EstaCarregando"
+                               Style="margin-top: 8px;">
+                        Nova Venda
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudCardContent>
+    </MudCard>
+
+    <!-- Mensagens -->
+    @if (ViewModel.TemErro)
+    {
+        <MudAlert Severity="Severity.Error">@ViewModel.MensagemErro</MudAlert>
+    }
+
+    @if (ViewModel.TemSucesso)
+    {
+        <MudAlert Severity="Severity.Success">@ViewModel.MensagemSucesso</MudAlert>
+    }
+
+    <!-- Estatísticas -->
+ @if (ViewModel.EstatisticasVendas != null)
+ {
+     <MudGrid Class="mb-4">
+         <MudItem xs="12" sm="6" md="3">
+             <MudCard>
+                 <MudCardContent>
+                     <MudIcon Icon="@Icons.Material.Filled.ShoppingCart" Color="Color.Primary" Size="Size.Large" Class="mr-3" />
+                     <MudText Typo="Typo.h6">@ViewModel.EstatisticasVendas.TotalVendas</MudText>
+                     <MudText Typo="Typo.body2" Color="Color.Secondary">Total de Vendas</MudText>
+                 </MudCardContent>
+             </MudCard>
+         </MudItem>
+         <MudItem xs="12" sm="6" md="3">
+             <MudCard>
+                 <MudCardContent>
+                     <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Color="Color.Success" Size="Size.Large" Class="mr-3" />
+                     <MudText Typo="Typo.h6">@ViewModel.EstatisticasVendas.ValorTotal.ToString("C")</MudText>
+                     <MudText Typo="Typo.body2" Color="Color.Secondary">Valor Total</MudText>
+                 </MudCardContent>
+             </MudCard>
+         </MudItem>
+         <MudItem xs="12" sm="6" md="3">
+             <MudCard>
+                 <MudCardContent>
+                     <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Color="Color.Info" Size="Size.Large" Class="mr-3" />
+                     <MudText Typo="Typo.h6">@ViewModel.EstatisticasVendas.ValorMedio.ToString("C")</MudText>
+                     <MudText Typo="Typo.body2" Color="Color.Secondary">Valor Médio</MudText>
+                 </MudCardContent>
+             </MudCard>
+         </MudItem>
+         <MudItem xs="12" sm="6" md="3">
+             <MudCard>
+                 <MudCardContent>
+                     <MudIcon Icon="@Icons.Material.Filled.People" Color="Color.Warning" Size="Size.Large" Class="mr-3" />
+                     <MudText Typo="Typo.h6">@ViewModel.EstatisticasVendas.MelhorFuncionarioNome</MudText>
+                     <MudText Typo="Typo.body2" Color="Color.Secondary">Melhor Funcionário</MudText>
+                 </MudCardContent>
+             </MudCard>
+         </MudItem>
+     </MudGrid>
+ }
+
+    <!-- Tabela de Vendas -->
+    <MudTable Items="@ViewModel.VendasFiltradas" Class="mt-4" Hover="true" Elevation="1" Dense="true">
+        <HeaderContent>
+            <MudTh>Funcionário</MudTh>
+            <MudTh>Valor</MudTh>
+            <MudTh>Data</MudTh>
+            <MudTh>Descrição</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.NomeFuncionario</MudTd>
+            <MudTd>@context.Valor.ToString("C")</MudTd>
+            <MudTd>@context.DataVenda.ToString("dd/MM/yyyy")</MudTd>
+            <MudTd>
+                @if (!string.IsNullOrEmpty(context.Descricao))
+                {
+                    <MudTooltip Text="@context.Descricao">
+                        <MudText>@(context.Descricao.Length > 30 ? context.Descricao[..30] + "..." : context.Descricao)</MudText>
+                    </MudTooltip>
+                }
+                else
+                {
+                    <MudText Color="Color.Secondary">-</MudText>
+                }
+            </MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" OnClick="@(() => AbrirModalEdicao(context))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => ConfirmarRemocao(context))" />
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText>Nenhuma venda encontrada.</MudText>
+        </NoRecordsContent>
+    </MudTable>
+
+    @if (ViewModel.VendasFiltradas is not null)
+    {
+        <MudText Class="mt-2">Total: @ViewModel.VendasFiltradas.Count</MudText>
+    }
+</MudContainer>
+
+@code {
+    [Parameter] public int? FuncionarioId { get; set; }
+    private string _textoPesquisa;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ViewModel.CarregarFuncionariosDisponiveisAsync();
+        await ViewModel.CarregarVendasAsync();
+        await ViewModel.PesquisarVendasAsync();
+        await ViewModel.CarregarEstatisticasAsync();
+    }
+
+    private async Task ExecutarPesquisa()
+    {
+        ViewModel.TextoPesquisa = _textoPesquisa;
+        await ViewModel.PesquisarVendasAsync();
+
+        if (!string.IsNullOrWhiteSpace(ViewModel.MensagemErro))
+            Snackbar.Add(ViewModel.MensagemErro, Severity.Error);
+    }
+
+    private async Task OnPeriodoAlterado(DateRange range)
+    {
+        ViewModel.PeriodoFiltro = range;
+        await ViewModel.CarregarVendasAsync();
+    }
+
+    private async Task AbrirModalCriacao()
+    {
+        ViewModel.AbrirModalCriacao(FuncionarioId);
+
+        var parametros = new DialogParameters
+    {
+        { "ViewModel", ViewModel },
+        { "ModoEdicao", false }
+    };
+
+        var opcoes = new DialogOptions
+        {
+            CloseButton = true,
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true
+        };
+
+        var dialog = DialogService.Show<VendaModal>("Nova Venda", parametros, opcoes);
+
+        var resultado = await dialog.Result;
+
+        if (!resultado.Canceled)
+        {
+            Snackbar.Add("Venda criada com sucesso!", Severity.Success);
+            await ViewModel.CarregarVendasAsync();
+            await ViewModel.CarregarEstatisticasAsync();
+        }
+    }
+
+    private async Task AbrirModalEdicao(VendaDto venda)
+    {
+        ViewModel.AbrirModalEdicao(venda);
+
+        var parametros = new DialogParameters
+    {
+        { "ViewModel", ViewModel },
+        { "ModoEdicao", true }
+    };
+
+        var opcoes = new DialogOptions
+        {
+            CloseButton = true,
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true
+        };
+
+        var dialog = DialogService.Show<VendaModal>("Editar Venda", parametros, opcoes);
+
+        var resultado = await dialog.Result;
+
+        if (!resultado.Canceled)
+        {
+            Snackbar.Add("Venda atualizada com sucesso!", Severity.Success);
+            await ViewModel.CarregarVendasAsync();
+            await ViewModel.CarregarEstatisticasAsync();
+        }
+    }
+
+    private void FecharModal() => ViewModel.FecharModalCriacao();
+
+    private async Task SalvarVenda()
+    {
+        ResultadoOperacao resultado;
+
+        if (ViewModel.ModalEdicaoAberto)
+        {
+            resultado = await ViewModel.AtualizarVendaAsync();
+        }
+        else
+        {
+            resultado = await ViewModel.CriarVendaAsync();
+        }
+
+        if (resultado.Sucesso)
+        {
+            Snackbar.Add(resultado.Mensagem ?? "Operação realizada com sucesso!", Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add(resultado.Mensagem ?? "Erro ao realizar a operação.", Severity.Error);
+        }
+
+        await ViewModel.CarregarEstatisticasAsync();
+    }
+
+
+    private async Task ConfirmarRemocao(VendaDto venda)
+    {
+        var parameters = new DialogParameters
+        {
+            ["ContentText"] = $"Deseja realmente remover a venda de {venda.NomeFuncionario} no valor de {venda.Valor:C}?",
+            ["ButtonText"] = "Remover",
+            ["Color"] = Color.Error
+        };
+
+        var dialog = await DialogService.ShowAsync<ConfirmationDialog>("Remover Venda", parameters);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            if (await ViewModel.RemoverVendaAsync(venda))
+            {
+                Snackbar.Add("Venda removida com sucesso!", Severity.Success);
+                await ViewModel.CarregarEstatisticasAsync();
+            }
+            else if (ViewModel.TemErro)
+            {
+                Snackbar.Add(ViewModel.MensagemErro, Severity.Error);
+            }
+        }
+    }
+}

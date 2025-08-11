@@ -1,0 +1,106 @@
+﻿@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@using Aplicacao.Utils
+@using Ranking.Aplicacao.Interfaces
+@using RankingVendedores.ViewModels
+@using MudBlazor
+
+<MudDialog>
+    <DialogContent>
+        @if (VendaSelecionada != null)
+        {
+            <MudForm @ref="formulario" Validated="OnValidado">
+                <MudTextField T="decimal"
+                              Label="Valor"
+                              @bind-Value="VendaSelecionada.Valor"
+                              Required="true"
+                              Immediate="true" />
+
+                <MudDatePicker Label="Data da Venda"
+                               @bind-Date="VendaSelecionada.DataVenda"
+                               Required="true" />
+
+                <MudSelect T="int"
+                           Label="Funcionário"
+                           @bind-Value="VendaSelecionada.FuncionarioId"
+                           Required="true">
+                    @foreach (var funcionario in ViewModel.FuncionariosDisponiveis)
+                    {
+                        <MudSelectItem T="int" Value="funcionario.Id">@funcionario.Nome</MudSelectItem>
+                    }
+                </MudSelect>
+
+                <MudTextField T="string"
+                              @bind-Value="VendaSelecionada.Descricao"
+                              Label="Descrição" 
+                    Required="true" />
+
+                @if (!string.IsNullOrWhiteSpace(MensagemErro))
+                {
+                    <MudText Color="Color.Error">@MensagemErro</MudText>
+                }
+            </MudForm>
+        }
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Fechar" Color="Color.Default">Cancelar</MudButton>
+        <MudButton OnClick="Salvar" Disabled="ViewModel.EstaCarregando" Color="Color.Primary">Salvar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public required VendaViewModel ViewModel { get; set; }
+    [Parameter] public bool ModoEdicao { get; set; }
+
+    private IVendaEditavel VendaSelecionada => ModoEdicao ? ViewModel.VendaEdicao! : ViewModel.NovaVenda!;
+
+
+    private MudForm? formulario;
+    private string? MensagemErro;
+
+    private void Fechar() => MudDialog.Cancel();
+
+    private async Task ValidarFormulario()
+    {
+        if (formulario is not null)
+            await formulario.Validate();
+    }
+
+    private async Task Salvar()
+    {
+        ResultadoOperacao resultado;
+
+        if (ViewModel.ModalEdicaoAberto)
+        {
+            resultado = await ViewModel.AtualizarVendaAsync();
+        }
+        else
+        {
+            resultado = await ViewModel.CriarVendaAsync();
+        }
+
+        if (resultado.Sucesso)
+        {
+            Snackbar.Add(resultado.Mensagem ?? "Operação realizada com sucesso!", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            Snackbar.Add(resultado.Mensagem ?? "Erro ao realizar a operação.", Severity.Error);
+        }
+
+        await ViewModel.CarregarEstatisticasAsync();
+    }
+
+    // private async void OnValidado()
+    // {
+    //     var sucesso = ViewModel.VendaEdicao == null
+    //   ? await ViewModel.CriarVendaAsync()
+    //   : await ViewModel.AtualizarVendaAsync();
+
+    //     if (sucesso)
+    //         MudDialog.Close(DialogResult.Ok(true));
+    // }
+}

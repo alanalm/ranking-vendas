@@ -1,0 +1,77 @@
+﻿@inherits LayoutComponentBase
+@inject ISnackbar Snackbar
+@inject IJSRuntime JSRuntime
+
+<MudThemeProvider @bind-IsDarkMode="@_isDarkMode" Theme="@_meuTema" />
+<MudPopoverProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudAppBar Elevation="1">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@DrawerToggle" />
+        <MudSpacer />
+        <MudText Typo="Typo.h5" Class="ml-3">Sistema de Ranking de Vendas</MudText>
+        <MudSpacer />
+        <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.Brightness7 : Icons.Material.Filled.Brightness4)" Color="Color.Inherit" OnClick="@DarkModeToggle" />
+    </MudAppBar>
+
+    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
+        <NavMenu />
+    </MudDrawer>
+
+    <MudMainContent Class="pt-16 px-16">
+        <MudContainer Class="mt-16" MaxWidth="MaxWidth.False">
+            @Body
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    bool _drawerOpen = true;
+    bool _isDarkMode = false;
+    bool _initialized = false;
+
+    MudTheme _meuTema = new()
+    {
+        PaletteLight = new PaletteLight()
+        {
+            Primary = Colors.Blue.Default,
+            Secondary = Colors.Green.Accent4,
+            Background = Colors.Gray.Lighten5,
+            Surface = Colors.Shades.White,
+            AppbarBackground = Colors.Blue.Darken3,
+            DrawerBackground = Colors.Gray.Lighten3,
+            DrawerText = Colors.Shades.Black,
+            DrawerIcon = Colors.Blue.Darken3
+        },
+        PaletteDark = new PaletteDark()
+        {
+            Primary = Colors.Blue.Lighten3,
+            Secondary = Colors.Green.Lighten3,
+            Background = "#121212",
+            Surface = "#1E1E1E",
+            AppbarBackground = "#1F1F1F",
+            DrawerBackground = "#252525",
+            DrawerText = Colors.Shades.White,
+            DrawerIcon = Colors.Blue.Lighten3
+        }
+    };
+
+    void DrawerToggle() => _drawerOpen = !_drawerOpen;
+
+    void DarkModeToggle()
+    {
+        _isDarkMode = !_isDarkMode;
+        StateHasChanged();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_initialized)
+        {
+            _isDarkMode = true; 
+            _initialized = true;
+            StateHasChanged();
+        }
+    }
+}

@@ -1,0 +1,52 @@
+﻿@inject IDialogService DialogService
+@inject FuncionarioViewModel ViewModel
+@using MudBlazor
+@using RankingVendedores.ViewModels
+@using Ranking.Aplicacao.DTOs
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField Label="Nome" @bind-Value="Funcionario.Nome" Required="true" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="SalvarAsync" Color="Color.Primary">Salvar</MudButton>
+        <MudButton OnClick="Cancelar">Cancelar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] public IMudDialogInstance MudDialog { get; set; }
+
+    [Parameter] public FuncionarioDto Funcionario { get; set; }
+
+    [Parameter] public bool ModoEdicao { get; set; }
+
+
+    private async Task SalvarAsync()
+    {
+        if (ModoEdicao)
+        {
+            var dto = new AtualizarFuncionarioDto
+            {
+                Id = Funcionario.Id,
+                Nome = Funcionario.Nome
+            };
+            await ViewModel.AtualizarFuncionarioAsync(dto);
+        }
+        else
+        {
+            var dto = new CriarFuncionarioDto
+            {
+                Nome = Funcionario.Nome
+            };
+            await ViewModel.CriarFuncionarioAsync(dto);
+        }
+
+        MudDialog.Close(DialogResult.Ok<FuncionarioDto>(Funcionario));
+    }
+
+    private void Cancelar()
+    {
+        MudDialog.Cancel();
+    }
+}

@@ -1,0 +1,138 @@
+﻿@page "/indicadores"
+@using Ranking.Aplicacao.DTOs
+@using Ranking.Aplicacao.Interfaces
+@using Ranking.Aplicacao
+@using Ranking.Dominio.Enums
+@using RankingVendedores.Services
+@using RankingVendedores.ViewModels
+@inject IndicadorViewModel ViewModel
+@inject IApiService ApiService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>Indicadores</PageTitle>
+
+<MudPaper Class="p-4">
+    <MudText Typo="Typo.h5" Class="mb-2">Indicadores</MudText>
+
+    <MudTextField @bind-Value="ViewModel.TextoPesquisa"
+                  Placeholder="Pesquisar por nome..."
+                  Adornment="Adornment.Start"
+                  AdornmentIcon="@Icons.Material.Filled.Search"
+                  Class="mb-4" />
+
+    <MudTable Items="ViewModel.IndicadoresFiltrados"
+              Hover="true"
+              Dense="true"
+              Bordered="true">
+
+        <HeaderContent>
+            <MudTh>Nome</MudTh>
+            <MudTh>Descrição</MudTh>
+        </HeaderContent>
+
+        <RowTemplate>
+            <MudTd>@context.Nome</MudTd>
+            <MudTd>@context.Descricao</MudTd>
+            <MudTd align="right">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" OnClick="@(() => AbrirModalEdicao(context))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => RemoverIndicador(context))" />
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+
+    <div class="mt-4 d-flex gap-2">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AbrirModalCriacao">
+            <MudIcon Icon="@Icons.Material.Filled.Add" /> Criar
+        </MudButton>
+    </div>
+</MudPaper>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        await ViewModel.CarregarIndicadoresAsync();
+    }
+
+    private async Task AbrirModalCriacao()
+    {
+        var modelo = new AtualizarIndicadorDto();
+        var parameters = new DialogParameters { ["Modelo"] = modelo };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+
+        var dialog = DialogService.Show<IndicadorModal>("", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is AtualizarIndicadorDto criado)
+        {
+            var dtoCriar = new CriarIndicadorDto
+            {
+                Nome = criado.Nome,
+                Descricao = criado.Descricao,
+                Tipo = criado.Tipo
+            };
+
+            var resultado = await ViewModel.CriarIndicadorAsync(dtoCriar);
+
+            if (resultado)
+            {
+                Snackbar.Add("Indicador criado com sucesso!", Severity.Success);
+                await ViewModel.CarregarIndicadoresAsync();
+            }
+            else
+            {
+                Snackbar.Add("Erro ao criar o indicador.", Severity.Error);
+            }
+        }
+    }
+
+
+    private async Task AbrirModalEdicao(IndicadorDto indicador)
+    {
+        var modelo = new AtualizarIndicadorDto
+        {
+            Id = indicador.Id,
+            Nome = indicador.Nome,
+            Descricao = indicador.Descricao
+        };
+
+        var parameters = new DialogParameters { ["Modelo"] = modelo };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+
+        var dialog = DialogService.Show<IndicadorModal>("Editar Indicador", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is AtualizarIndicadorDto atualizado)
+        {
+            var resultado = await ViewModel.AtualizarIndicadorAsync(atualizado);
+
+            if (resultado)
+            {
+                Snackbar.Add("Indicador atualizado com sucesso!", Severity.Success);
+                await ViewModel.CarregarIndicadoresAsync();
+            }
+            else
+            {
+                Snackbar.Add("Erro ao atualizar o indicador.", Severity.Error);
+            }
+        }
+    }
+
+
+    private async Task RemoverIndicador(IndicadorDto indicador)
+    {
+        bool? confirmacao = await DialogService.ShowMessageBox(
+         title: "Remover Indicador",
+         markupMessage: (MarkupString)$"Deseja realmente remover o indicador <b>{indicador.Nome}</b>?",
+         yesText: "Sim", cancelText: "Não"
+     );
+
+        if (confirmacao == true)
+        {
+            if (await ViewModel.RemoverIndicadorAsync(indicador))
+                Snackbar.Add("Indicador removido com sucesso!", Severity.Success);
+            else if (!string.IsNullOrWhiteSpace(ViewModel.MensagemErro))
+                Snackbar.Add(ViewModel.MensagemErro, Severity.Error);
+        }
+    }
+}

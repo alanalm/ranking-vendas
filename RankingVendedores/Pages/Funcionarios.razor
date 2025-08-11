@@ -1,0 +1,243 @@
+﻿@page "/funcionarios"
+@using RankingVendedores.Services
+@using RankingVendedores.ViewModels
+@using Ranking.Aplicacao.DTOs
+@using MudBlazor
+@inject FuncionarioViewModel ViewModel
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject IApiService ApiService
+
+<PageTitle>Funcionários</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
+    <MudText Typo="Typo.h3" GutterBottom="true">
+        <MudIcon Icon="@Icons.Material.Filled.People" Class="mr-3" />
+        Funcionários
+    </MudText>
+
+    <!-- Barra de Ações -->
+    <MudCard Class="mb-4">
+        <MudCardContent>
+            <MudGrid AlignItems="Center" Justify="Justify.SpaceBetween">
+                <MudItem xs="12" sm="6" md="8">
+                    <MudTextField @bind-Value="ViewModel.FiltroNome"
+                                  Label="Pesquisar funcionário"
+                                  Variant="Variant.Outlined"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Search"
+                                  Placeholder="Digite o nome do funcionário..." />
+                </MudItem>
+                <MudItem xs="3">
+                    <MudButton Color="Color.Primary" FullWidth="true"
+                               OnClick="ViewModel.FiltrarFuncionarios"
+                               Disabled="ViewModel.EstaCarregando"
+                               StartIcon="@Icons.Material.Filled.Search"
+                               Style="margin-top: 8px;">
+                        Pesquisar
+                    </MudButton>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="4">
+                    <MudButton Color="Color.Primary"
+                               Variant="Variant.Filled"
+                               StartIcon="@Icons.Material.Filled.Add"
+                               OnClick="AbrirModalCriacao"
+                               Disabled="ViewModel.EstaCarregando">
+                        Adicionar Novo
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudCardContent>
+    </MudCard>
+
+    <!-- Mensagens -->
+    @if (ViewModel.TemErro)
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-4">@ViewModel.MensagemErro</MudAlert>
+    }
+
+    @if (ViewModel.TemSucesso)
+    {
+        <MudAlert Severity="Severity.Success" Class="mb-4">@ViewModel.MensagemSucesso</MudAlert>
+    }
+
+    @if (ViewModel.EstaCarregando)
+    {
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mb-4" />
+    }
+
+    <!-- Tabela de Funcionários -->
+    
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudText Typo="Typo.h6">Lista de Funcionários (@ViewModel.Funcionarios.Count)</MudText>
+            </CardHeaderContent>
+        </MudCardHeader>
+        <MudCardContent Class="pa-0">
+            @if (ViewModel.Funcionarios.Any())
+            {
+                <MudTable Items="ViewModel.FuncionariosFiltrados"
+                          Hover="true"
+                          Striped="true"
+                          Dense="true"
+                          FixedHeader="true"
+                          Height="500px">
+                    <HeaderContent>
+                        @* <MudTh>ID</MudTh> *@
+                        <MudTh>Nome</MudTh>
+                        <MudTh>Data de Criação</MudTh>
+                        <MudTh>Última Atualização</MudTh>
+                        @* <MudTh>Ações</MudTh> *@
+                    </HeaderContent>
+                    <RowTemplate>
+                        @* <MudTd DataLabel="ID">@context.Id</MudTd> *@
+                        <MudTd DataLabel="Nome">@context.Nome</MudTd>
+                        <MudTd DataLabel="Data de Criação">@context.DataCriacao.ToString("dd/MM/yyyy HH:mm")</MudTd>
+                        <MudTd DataLabel="Última Atualização">@context.DataAtualizacao?.ToString("dd/MM/yyyy HH:mm")</MudTd>
+                        <MudTd DataLabel="Ações">
+                            <MudButtonGroup Size="Size.Small" Variant="Variant.Text">
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                               Color="Color.Primary"
+                                               OnClick="() => AbrirModalEdicao(context)"
+                                               Disabled="ViewModel.EstaCarregando" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                               Color="Color.Error"
+                                               OnClick="() => ConfirmarRemocao(context)"
+                                               Disabled="ViewModel.EstaCarregando" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Visibility"
+                                               Color="Color.Info"
+                                               OnClick="() => VisualizarDetalhes(context)" />
+                            </MudButtonGroup>
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            }
+            else if (!ViewModel.EstaCarregando)
+            {
+                <MudAlert Severity="Severity.Info" Class="ma-4">
+                    <MudText>Nenhum funcionário encontrado.</MudText>
+                    <MudButton Color="Color.Primary"
+                               Variant="Variant.Text"
+                               StartIcon="@Icons.Material.Filled.Add"
+                               OnClick="AbrirModalCriacao"
+                               Class="mt-2">
+                        Cadastrar Primeiro Funcionário
+                    </MudButton>
+                </MudAlert>
+            }
+        </MudCardContent>    
+</MudContainer>
+
+@code {
+    private DialogOptions dialogOptions = new() { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+
+    protected override async Task OnInitializedAsync()
+    {
+        ViewModel ??= new FuncionarioViewModel(ApiService, DialogService);
+        await ViewModel.CarregarFuncionariosAsync();
+    }
+
+    private async Task PesquisarFuncionarios()
+    {
+        await ViewModel.PesquisarFuncionariosAsync();
+    }
+
+    private async Task AbrirModalCriacao()
+    {
+        var novoFuncionario = new FuncionarioDto(); 
+        var parameters = new DialogParameters
+        {
+            ["Funcionario"] = novoFuncionario,
+            ["ModoEdicao"] = false
+        };
+
+        var dialog = await DialogService.ShowAsync<FuncionarioModal>("Novo Funcionário", parameters, dialogOptions);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            novoFuncionario = result.Data as FuncionarioDto;
+
+            if (novoFuncionario is not null)
+            {
+                ViewModel.Funcionarios.Insert(0, novoFuncionario);
+                Snackbar.Add("Funcionário criado com sucesso!", Severity.Success);
+            }
+        }
+    }
+
+    private async Task AbrirModalEdicao(FuncionarioDto funcionario)
+    {
+        var funcionarioParaEditar = new FuncionarioDto
+        {
+            Id = funcionario.Id,
+            Nome = funcionario.Nome
+        };
+
+        var parameters = new DialogParameters
+        {
+            ["Funcionario"] = funcionarioParaEditar,
+            ["ModoEdicao"] = true
+        };
+
+        var dialog = await DialogService.ShowAsync<FuncionarioModal>("Editar Funcionário", parameters, dialogOptions);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is FuncionarioDto funcionarioAtualizado)
+        {
+            int index = -1;
+            for (int i = 0; i < ViewModel.Funcionarios.Count; i++)
+            {
+                if (ViewModel.Funcionarios[i].Id == funcionarioAtualizado.Id)
+                {
+                    index = i;
+                    break;
+                }
+            }
+
+            if (index != -1)
+            {
+                ViewModel.Funcionarios[index] = funcionarioAtualizado;
+                Snackbar.Add("Funcionário atualizado com sucesso!", Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add("Erro ao atualizar funcionário: funcionário não encontrado.", Severity.Error);
+            }
+        }
+    }
+
+
+
+    private async Task ConfirmarRemocao(FuncionarioDto funcionario)
+    {
+        var parameters = new DialogParameters
+        {
+            ["ContentText"] = $"Tem certeza que deseja remover o funcionário '{funcionario.Nome}'?",
+            ["ButtonText"] = "Remover",
+            ["Color"] = Color.Error
+        };
+
+        var dialog = await DialogService.ShowAsync<ConfirmationDialog>("Confirmar Remoção", parameters);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            var sucesso = await ViewModel.RemoverFuncionarioAsync(funcionario);
+            if (sucesso)
+            {
+                Snackbar.Add("Funcionário removido com sucesso!", Severity.Success);
+                await ViewModel.CarregarFuncionariosAsync();
+            }
+            else if (ViewModel.TemErro)
+            {
+                Snackbar.Add(ViewModel.MensagemErro, Severity.Error);
+            }
+        }
+    }
+
+    private void VisualizarDetalhes(FuncionarioDto funcionario)
+    {
+        Snackbar.Add($"Visualizando {funcionario.Nome} (funcionalidade futura)", Severity.Info);
+    }
+}

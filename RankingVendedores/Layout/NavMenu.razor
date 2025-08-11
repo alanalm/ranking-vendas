@@ -1,0 +1,111 @@
+﻿<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">Ranking Vendas</a>
+    </div>
+</div>
+
+<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+
+<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
+    <nav class="flex-column">
+        <MudNavMenu>
+            <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">
+                Dashboard
+            </MudNavLink>
+
+            <MudNavGroup title="Ranking" Text="Ranking" Icon="Icons.Material.Filled.Leaderboard" Expanded="true">
+                <MudNavLink Href="/ranking" Icon="@Icons.Material.Filled.EmojiEvents">
+                    Ranking Geral
+                </MudNavLink>
+                <MudNavLink Href="/ranking/periodo-atual" Icon="@Icons.Material.Filled.Today">
+                    Período Atual
+                </MudNavLink>
+                <MudNavLink Href="/ranking/metas-atingidas" Icon="@Icons.Material.Filled.CheckCircle">
+                    Metas Atingidas
+                </MudNavLink>
+            </MudNavGroup>
+
+            <MudNavGroup title="Cadastrar" Text="Cadastros" Icon="Icons.Material.Filled.Settings" Expanded="false">
+                <MudNavLink Href="/funcionarios" Icon="@Icons.Material.Filled.People">
+                    Funcionários
+                </MudNavLink>
+                <MudNavLink Href="/indicadores" Icon="@Icons.Material.Filled.Assessment">
+                    Indicadores
+                </MudNavLink>
+                <MudNavLink Href="/metas" Icon="@Icons.Material.Filled.Flag">
+                    Metas
+                </MudNavLink>
+                <MudNavLink Href="/vendas" Icon="@Icons.Material.Filled.ShoppingCart">
+                    Vendas
+                </MudNavLink>
+            </MudNavGroup>
+
+            <MudNavGroup title="Relatorios" Text="Relatórios" Icon="@Icons.Material.Filled.Analytics" Expanded="false">
+                <MudNavLink Href="/relatorios/desempenho" Icon="@Icons.Material.Filled.TrendingUp">
+                    Desempenho
+                </MudNavLink>
+                <MudNavLink Href="/relatorios/vendas" Icon="@Icons.Material.Filled.BarChart">
+                    Vendas
+                </MudNavLink>
+                <MudNavLink Href="/relatorios/metas" Icon="@Icons.Material.Filled.TrackChanges">
+                    Metas
+                </MudNavLink>
+            </MudNavGroup>
+
+            <MudDivider Class="my-2" />
+
+            <MudNavLink Href="/configuracoes" Icon="@Icons.Material.Filled.Settings">
+                Configurações
+            </MudNavLink>
+
+            <MudNavLink Href="/ajuda" Icon="@Icons.Material.Filled.Help">
+                Ajuda
+            </MudNavLink>
+        </MudNavMenu>
+    </nav>
+</div>
+
+<style>
+    .navbar-toggler {
+        appearance: none;
+        cursor: pointer;
+        width: 3rem;
+        height: 2.25rem;
+        color: white;
+        position: absolute;
+        top: 0.5rem;
+        right: 1rem;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 0.55%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e") no-repeat center/1.75rem rgba(255, 255, 255, 0.1);
+    }
+
+        .navbar-toggler:checked {
+            background-color: rgba(255, 255, 255, 0.5);
+        }
+
+    .top-row {
+        height: 3.5rem;
+        background-color: rgba(0,0,0,0.4);
+    }
+
+    .navbar-brand {
+        font-size: 1.1rem;
+    }
+
+    .navbar-toggler:checked ~ .nav-scrollable {
+        display: block;
+    }
+
+    .nav-scrollable {
+        display: block;
+
+        height: calc(100vh - 3.5rem);
+        overflow-y: auto;
+    }
+
+
+    .navbar-toggler:checked ~ .nav-scrollable {
+
+        display: block;
+    }
+</style>

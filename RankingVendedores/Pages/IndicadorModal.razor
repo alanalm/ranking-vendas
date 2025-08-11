@@ -1,0 +1,41 @@
+﻿@using MudBlazor
+@using Ranking.Aplicacao.DTOs
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.h6">@((Modelo?.Id ?? 0) == 0 ? "Novo Indicador" : "Editar Indicador")</MudText>
+
+        <MudTextField @bind-Value="Modelo.Nome" Label="Nome" Required="true" RequiredError="O nome é obrigatório." />
+        <MudTextField @bind-Value="Modelo.Descricao" Label="Descrição" Required="true" RequiredError="A descrição é obrigatória." />
+        <MudSelect T="TipoIndicador" @bind-Value="Modelo.Tipo" Label="Tipo" Required="true" RequiredError="O tipo é obrigatório">
+    @foreach (TipoIndicador tipo in Enum.GetValues(typeof(TipoIndicador)))
+    {
+        <MudSelectItem Value="@tipo">@tipo</MudSelectItem>
+    }
+</MudSelect>
+
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancelar" Color="Color.Secondary">Cancelar</MudButton>
+        <MudButton OnClick="Salvar" Color="Color.Primary" Variant="Variant.Filled">Salvar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    public IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public AtualizarIndicadorDto Modelo { get; set; } = new(); 
+
+    private void Cancelar() => MudDialog.Cancel();
+
+    private void Salvar()
+    {
+        if (string.IsNullOrWhiteSpace(Modelo?.Nome) || string.IsNullOrWhiteSpace(Modelo.Descricao) || Modelo.Tipo == TipoIndicador.Nenhum)
+            return;
+
+        MudDialog.Close(DialogResult.Ok(Modelo));
+    }
+}
