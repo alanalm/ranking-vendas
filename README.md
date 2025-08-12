@@ -1,6 +1,6 @@
 # Sistema de Ranking de Vendedores
 
-![Capa do Projeto](link_para_uma_imagem_ou_gif_do_sistema)
+![Capa do Projeto](RankingVendedores/imagemSistema.png)
 
 ## Descrição
 
