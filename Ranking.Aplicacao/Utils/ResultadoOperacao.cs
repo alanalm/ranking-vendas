@@ -2,9 +2,9 @@
 {
     public class ResultadoOperacao
     {
-        public bool Sucesso { get; private set; }
-        public string? Mensagem { get; private set; }
-        public List<string> Erros { get; private set; } = new();
+        public bool Sucesso { get; set; }
+        public string? Mensagem { get; set; }
+        public List<string> Erros { get; set; } = new();
 
         public ResultadoOperacao() { }
 
@@ -34,7 +34,7 @@
 
     public class ResultadoOperacao<T> : ResultadoOperacao
     {
-        public T? Dados { get; private set; }
+        public T? Dados { get; set; }
 
         public ResultadoOperacao() { }
 

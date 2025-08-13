@@ -3,10 +3,9 @@
 @using Ranking.Aplicacao.Interfaces
 @using Ranking.Aplicacao
 @using Ranking.Dominio.Enums
-@using RankingVendedores.Services
+@using RankingVendedores.Servicos.Interfaces
 @using RankingVendedores.ViewModels
 @inject IndicadorViewModel ViewModel
-@inject IApiService ApiService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 
@@ -29,6 +28,7 @@
         <HeaderContent>
             <MudTh>Nome</MudTh>
             <MudTh>Descrição</MudTh>
+            <MudTh></MudTh>
         </HeaderContent>
 
         <RowTemplate>

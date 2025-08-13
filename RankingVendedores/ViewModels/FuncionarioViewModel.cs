@@ -1,14 +1,14 @@
 ﻿using MudBlazor;
 using Ranking.Aplicacao.DTOs;
 using RankingVendedores.Pages;
-using RankingVendedores.Services;
+using RankingVendedores.Servicos.Interfaces;
 using System.Collections.ObjectModel;
 
 namespace RankingVendedores.ViewModels
 {
     public class FuncionarioViewModel : ViewModelBase
     {
-        private readonly IApiService _apiService;
+        private readonly IFuncionarioApiService _apiService;
         private readonly IDialogService _dialogService;
 
         public string? FiltroNome { get; set; }
@@ -22,7 +22,7 @@ namespace RankingVendedores.ViewModels
             set => SetProperty(ref _funcionarioSelecionado, value);
         }
 
-        public FuncionarioViewModel(IApiService apiService, IDialogService dialogService)
+        public FuncionarioViewModel(IFuncionarioApiService apiService, IDialogService dialogService)
         {
             _apiService = apiService ?? throw new ArgumentNullException(nameof(apiService));
             _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
@@ -87,7 +87,7 @@ namespace RankingVendedores.ViewModels
 
         public async Task AbrirModalNovoFuncionarioAsync()
         {
-            var parameters = new DialogParameters(); // vazio, criação
+            var parameters = new DialogParameters();
 
             var options = new DialogOptions
             {

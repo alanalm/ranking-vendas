@@ -1,14 +1,14 @@
 ﻿using MudBlazor;
 using Ranking.Aplicacao.DTOs;
 using Ranking.Dominio.Enums;
-using RankingVendedores.Services;
+using RankingVendedores.Servicos.Interfaces;
 using System.Collections.ObjectModel;
 
 namespace RankingVendedores.ViewModels
 {
     public class IndicadorViewModel : ViewModelBase
     {
-        private readonly IApiService _apiService;
+        private readonly IIndicadorApiService _apiService;
 
         public ObservableCollection<IndicadorDto> Indicadores { get; private set; } = new();
         public ObservableCollection<IndicadorDto> IndicadoresFiltrados { get; private set; } = new();
@@ -31,7 +31,7 @@ namespace RankingVendedores.ViewModels
             }
         }
 
-        public IndicadorViewModel(IApiService apiService)
+        public IndicadorViewModel(IIndicadorApiService apiService)
         {
             _apiService = apiService ?? throw new ArgumentNullException(nameof(apiService));
         }

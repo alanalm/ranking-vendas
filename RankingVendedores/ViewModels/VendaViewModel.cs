@@ -2,7 +2,7 @@
 using MudBlazor;
 using Ranking.Aplicacao.DTOs;
 using Ranking.Aplicacao.Validacoes;
-using RankingVendedores.Services;
+using RankingVendedores.Servicos.Interfaces;
 using System.Collections.ObjectModel;
 
 namespace RankingVendedores.ViewModels
@@ -13,15 +13,11 @@ namespace RankingVendedores.ViewModels
     /// </summary>
     public class VendaViewModel : ViewModelBase
     {
-        private readonly IApiService _apiService;
+        private readonly IVendaApiService _apiService;
+        private readonly IFuncionarioApiService _funcionarioApiService;
         private readonly ValidadorCriarVenda _validadorCriarVenda = new();
 
-        private List<VendaDto> _vendasOriginais = new(); // guarda tudo
-
-        /// <summary>
-        /// Coleção de vendas para exibição na interface.
-        /// </summary>
-        //public ObservableCollection<VendaDto> Vendas { get; private set; } = new();
+        private List<VendaDto> _vendasOriginais = new();
 
         /// <summary>
         /// Coleção de funcionários disponíveis para seleção.
@@ -137,7 +133,7 @@ namespace RankingVendedores.ViewModels
         /// Construtor que recebe as dependências via injeção de dependência.
         /// </summary>
         /// <param name="apiService">Serviço para comunicação com a API.</param>
-        public VendaViewModel(IApiService apiService)
+        public VendaViewModel(IVendaApiService apiService)
         {
             _apiService = apiService ?? throw new ArgumentNullException(nameof(apiService));
         }
@@ -186,7 +182,7 @@ namespace RankingVendedores.ViewModels
         public async Task CarregarFuncionariosDisponiveisAsync()
         {
             var resultado = await ExecutarOperacaoAsync(() =>
-                _apiService.ObterFuncionariosAsync()
+                _funcionarioApiService.ObterFuncionariosAsync()
             );
 
             if (resultado is not null && resultado.Sucesso && resultado.Dados is not null)
