@@ -9,7 +9,7 @@
     <DialogContent>
         @if (VendaSelecionada != null)
         {
-            <MudForm @ref="formulario" Validated="OnValidado">
+            <MudForm @ref="formulario">
                 <MudTextField T="decimal"
                               Label="Valor"
                               @bind-Value="VendaSelecionada.Valor"
@@ -93,14 +93,4 @@
 
         await ViewModel.CarregarEstatisticasAsync();
     }
-
-    // private async void OnValidado()
-    // {
-    //     var sucesso = ViewModel.VendaEdicao == null
-    //   ? await ViewModel.CriarVendaAsync()
-    //   : await ViewModel.AtualizarVendaAsync();
-
-    //     if (sucesso)
-    //         MudDialog.Close(DialogResult.Ok(true));
-    // }
 }

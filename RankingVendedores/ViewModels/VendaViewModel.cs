@@ -133,9 +133,10 @@ namespace RankingVendedores.ViewModels
         /// Construtor que recebe as dependências via injeção de dependência.
         /// </summary>
         /// <param name="apiService">Serviço para comunicação com a API.</param>
-        public VendaViewModel(IVendaApiService apiService)
+        public VendaViewModel(IVendaApiService apiService, IFuncionarioApiService funcionarioApiService)
         {
             _apiService = apiService ?? throw new ArgumentNullException(nameof(apiService));
+            _funcionarioApiService = funcionarioApiService ?? throw new ArgumentNullException(nameof(funcionarioApiService));
         }
 
         /// <summary>
@@ -148,7 +149,6 @@ namespace RankingVendedores.ViewModels
             EstaCarregando = true;
             try
             {
-                Console.WriteLine("[ViewModel] Chamando API de vendas...");
                 var resultado = await ExecutarOperacaoAsync(async () =>
                 {
                     DateTime? dataInicio = PeriodoFiltro?.Start;
@@ -159,14 +159,12 @@ namespace RankingVendedores.ViewModels
 
                 if (vendas != null)
                 {
-                    Console.WriteLine($"[ViewModel] Vendas carregadas: {resultado?.Count() ?? 0}");
                     _vendasOriginais = vendas.ToList(); // mantém lista completa
                     AtualizarListaFiltrada(_vendasOriginais);
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ViewModel] Exceção ao carregar vendas: {ex.Message}");
                 MensagemErro = "Erro ao carregar vendas.";
             }
             finally
@@ -242,9 +240,7 @@ namespace RankingVendedores.ViewModels
 
         private void AtualizarListaFiltrada(List<VendaDto> vendas)
         {
-            Console.WriteLine($"[ViewModel] Atualizando lista filtrada. Total: {vendas.Count}");
             VendasFiltradas = new List<VendaDto>(vendas);
-            Console.WriteLine($"[ViewModel] Vendas na tabela: {VendasFiltradas.Count}");
         }
 
         /// <summary>

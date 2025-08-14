@@ -80,9 +80,10 @@ namespace RankingVendedores.ViewModels
 
         public string? MensagemErro { get; private set; }
 
-        public MetaViewModel(IMetaApiService apiService)
+        public MetaViewModel(IMetaApiService apiService, IIndicadorApiService indicadorApiService)
         {
             _apiService = apiService ?? throw new ArgumentNullException(nameof(apiService));
+            _indicadorApiService = indicadorApiService ?? throw new ArgumentNullException(nameof(indicadorApiService));
         }
 
         public async Task CarregarMetasAsync(int? indicadorId = null)
