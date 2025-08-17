@@ -1,17 +1,18 @@
 ﻿using Aplicacao.Utils;
 using MudBlazor;
 using Ranking.Aplicacao.DTOs;
-using Ranking.Aplicacao.Servicos;
 using Ranking.Aplicacao.Validacoes;
-using RankingVendedores.Services;
+using RankingVendedores.Servicos.Interfaces;
 using System.Collections.ObjectModel;
 
 namespace RankingVendedores.ViewModels
 {
     public class MetaViewModel : ViewModelBase
     {
-        private readonly IApiService _apiService;
+        private readonly IMetaApiService _apiService;
+        private readonly IIndicadorApiService _indicadorApiService;
         private readonly ValidadorCriarMeta _validadorCriarMeta = new();
+        private readonly ValidadorAtualizarMeta _validadorAtualizarMeta = new();
 
         public List<MetaDto> Metas { get; private set; } = new();
 
@@ -80,9 +81,10 @@ namespace RankingVendedores.ViewModels
 
         public string? MensagemErro { get; private set; }
 
-        public MetaViewModel(IApiService apiService)
+        public MetaViewModel(IMetaApiService apiService, IIndicadorApiService indicadorApiService)
         {
             _apiService = apiService ?? throw new ArgumentNullException(nameof(apiService));
+            _indicadorApiService = indicadorApiService ?? throw new ArgumentNullException(nameof(indicadorApiService));
         }
 
         public async Task CarregarMetasAsync(int? indicadorId = null)
@@ -133,7 +135,7 @@ namespace RankingVendedores.ViewModels
         {
             try
             {
-                var indicadores = await _apiService.ObterIndicadoresAsync();
+                var indicadores = await _indicadorApiService.ObterIndicadoresAsync();
                 IndicadoresDisponiveis.Clear();
 
                 foreach (var indicador in indicadores.Dados)
@@ -225,12 +227,9 @@ namespace RankingVendedores.ViewModels
             if (NovaMeta == null)
                 return ResultadoOperacao.CriarFalha("Preencha os dados da nova meta.");
 
-            var resultadoValidacao = _validadorCriarMeta.Validate(NovaMeta);
-            if (!resultadoValidacao.IsValid)
-            {
-                var mensagem = resultadoValidacao.Errors.First().ErrorMessage;
-                return ResultadoOperacao.CriarFalha(mensagem);
-            }
+            var resultadoValidacao = await ValidarDtoResultadoAsync(_validadorCriarMeta, NovaMeta);
+            if (!resultadoValidacao.Sucesso)
+                return resultadoValidacao;
 
             try
             {
@@ -266,6 +265,10 @@ namespace RankingVendedores.ViewModels
                 DataFim = MetaEdicao.DataFim,
                 Ativa = MetaEdicao.Ativa
             };
+
+            var resultadoValidacao = await ValidarDtoResultadoAsync(_validadorAtualizarMeta, dto);
+            if (!resultadoValidacao.Sucesso)
+                return resultadoValidacao;
 
             try
             {

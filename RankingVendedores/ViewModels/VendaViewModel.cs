@@ -2,7 +2,7 @@
 using MudBlazor;
 using Ranking.Aplicacao.DTOs;
 using Ranking.Aplicacao.Validacoes;
-using RankingVendedores.Services;
+using RankingVendedores.Servicos.Interfaces;
 using System.Collections.ObjectModel;
 
 namespace RankingVendedores.ViewModels
@@ -13,15 +13,12 @@ namespace RankingVendedores.ViewModels
     /// </summary>
     public class VendaViewModel : ViewModelBase
     {
-        private readonly IApiService _apiService;
+        private readonly IVendaApiService _apiService;
+        private readonly IFuncionarioApiService _funcionarioApiService;
         private readonly ValidadorCriarVenda _validadorCriarVenda = new();
+        private readonly ValidadorAtualizarVenda _validadorAtualizarVenda = new();
 
-        private List<VendaDto> _vendasOriginais = new(); // guarda tudo
-
-        /// <summary>
-        /// Coleção de vendas para exibição na interface.
-        /// </summary>
-        //public ObservableCollection<VendaDto> Vendas { get; private set; } = new();
+        private List<VendaDto> _vendasOriginais = new();
 
         /// <summary>
         /// Coleção de funcionários disponíveis para seleção.
@@ -137,9 +134,10 @@ namespace RankingVendedores.ViewModels
         /// Construtor que recebe as dependências via injeção de dependência.
         /// </summary>
         /// <param name="apiService">Serviço para comunicação com a API.</param>
-        public VendaViewModel(IApiService apiService)
+        public VendaViewModel(IVendaApiService apiService, IFuncionarioApiService funcionarioApiService)
         {
             _apiService = apiService ?? throw new ArgumentNullException(nameof(apiService));
+            _funcionarioApiService = funcionarioApiService ?? throw new ArgumentNullException(nameof(funcionarioApiService));
         }
 
         /// <summary>
@@ -152,7 +150,6 @@ namespace RankingVendedores.ViewModels
             EstaCarregando = true;
             try
             {
-                Console.WriteLine("[ViewModel] Chamando API de vendas...");
                 var resultado = await ExecutarOperacaoAsync(async () =>
                 {
                     DateTime? dataInicio = PeriodoFiltro?.Start;
@@ -163,14 +160,12 @@ namespace RankingVendedores.ViewModels
 
                 if (vendas != null)
                 {
-                    Console.WriteLine($"[ViewModel] Vendas carregadas: {resultado?.Count() ?? 0}");
                     _vendasOriginais = vendas.ToList(); // mantém lista completa
                     AtualizarListaFiltrada(_vendasOriginais);
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ViewModel] Exceção ao carregar vendas: {ex.Message}");
                 MensagemErro = "Erro ao carregar vendas.";
             }
             finally
@@ -186,7 +181,7 @@ namespace RankingVendedores.ViewModels
         public async Task CarregarFuncionariosDisponiveisAsync()
         {
             var resultado = await ExecutarOperacaoAsync(() =>
-                _apiService.ObterFuncionariosAsync()
+                _funcionarioApiService.ObterFuncionariosAsync()
             );
 
             if (resultado is not null && resultado.Sucesso && resultado.Dados is not null)
@@ -246,9 +241,7 @@ namespace RankingVendedores.ViewModels
 
         private void AtualizarListaFiltrada(List<VendaDto> vendas)
         {
-            Console.WriteLine($"[ViewModel] Atualizando lista filtrada. Total: {vendas.Count}");
             VendasFiltradas = new List<VendaDto>(vendas);
-            Console.WriteLine($"[ViewModel] Vendas na tabela: {VendasFiltradas.Count}");
         }
 
         /// <summary>
@@ -316,19 +309,15 @@ namespace RankingVendedores.ViewModels
         public async Task<ResultadoOperacao> CriarVendaAsync()
         {
             if (NovaVenda == null)
-                return ResultadoOperacao.CriarFalha("Preencha os dados da nova meta.");
+                return ResultadoOperacao.CriarFalha("Preencha os dados da nova venda.");
 
-            var resultadoValidacao = _validadorCriarVenda.Validate(NovaVenda);
-            if (!resultadoValidacao.IsValid)
-            {
-                var mensagem = resultadoValidacao.Errors.First().ErrorMessage;
-                return ResultadoOperacao.CriarFalha(mensagem);
-            }
+            var resultadoValidacao = await ValidarDtoResultadoAsync(_validadorCriarVenda, NovaVenda);
+            if (!resultadoValidacao.Sucesso)
+                return resultadoValidacao;
 
             try
             {
                 EstaCarregando = true;
-
                 await _apiService.CriarVendaAsync(NovaVenda);
                 FecharModalCriacao();
                 await CarregarVendasAsync();
@@ -337,14 +326,13 @@ namespace RankingVendedores.ViewModels
             }
             catch (Exception ex)
             {
-                return ResultadoOperacao.CriarFalha($"Erro ao criar Venda: {ex.Message}");
+                return ResultadoOperacao.CriarFalha($"Erro ao criar venda: {ex.Message}");
             }
             finally
             {
                 EstaCarregando = false;
             }
         }
-
 
         /// <summary>
         /// Atualiza uma venda existente.
@@ -363,6 +351,10 @@ namespace RankingVendedores.ViewModels
                 DataVenda = VendaEdicao.DataVenda,
                 Descricao = VendaEdicao.Descricao
             };
+
+            var resultadoValidacao = await ValidarDtoResultadoAsync(_validadorAtualizarVenda, dto);
+            if (!resultadoValidacao.Sucesso)
+                return resultadoValidacao;
 
             try
             {

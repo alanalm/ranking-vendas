@@ -1,13 +1,13 @@
 ﻿using MudBlazor;
 using Ranking.Aplicacao.DTOs;
-using RankingVendedores.Services;
+using RankingVendedores.Servicos.Interfaces;
 using System.Collections.ObjectModel;
 
 namespace RankingVendedores.ViewModels
 {
     public class RankingViewModel : ViewModelBase
     {
-        private readonly IApiService _apiService;
+        private readonly IRankingApiService _apiService;
 
         public ObservableCollection<RankingDto> Ranking { get; } = new();
 
@@ -45,7 +45,6 @@ namespace RankingVendedores.ViewModels
                         DataInicio = value.Start;
                         DataFim = value.End;
 
-                        // NÃO use Task.Run sem necessidade
                         _ = CarregarRankingAsync();
                     }
                 }
@@ -96,7 +95,7 @@ namespace RankingVendedores.ViewModels
         }
 
         /// <param name="apiService">Serviço para comunicação com a API.</param>
-        public RankingViewModel(IApiService apiService)
+        public RankingViewModel(IRankingApiService apiService)
         {
             _apiService = apiService ?? throw new ArgumentNullException(nameof(apiService));
 
@@ -114,13 +113,6 @@ namespace RankingVendedores.ViewModels
 
         public async Task CarregarRankingAsync()
         {
-
-            // Verificar se existem metas ativas
-            //ExistemMetasAtivas = true;
-            //    await ExecutarOperacaoAsync(async () =>
-            //{
-            //    return await _apiService.VerificarMetasAtivasAsync(DataInicio, DataFim);
-            //});
 
             bool metasAtivas;
 

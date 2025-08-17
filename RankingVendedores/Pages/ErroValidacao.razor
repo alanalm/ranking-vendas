@@ -1,0 +1,18 @@
+﻿@typeparam TViewModel where TViewModel : ViewModelBase
+@inherits ComponentBase
+@using MudBlazor
+
+@if (ViewModel is not null && ViewModel.TemErros)
+{
+    @foreach (var prop in ViewModel.GetPropriedadesComErros())
+    {
+        foreach (var msg in ViewModel.GetErros(prop))
+        {
+            <MudText Color="Color.Error">@msg</MudText>
+        }
+    }
+}
+
+@code {
+    [Parameter] public TViewModel ViewModel { get; set; }
+}

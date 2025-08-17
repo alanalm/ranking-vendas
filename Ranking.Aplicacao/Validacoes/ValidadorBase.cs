@@ -15,7 +15,7 @@ namespace Ranking.Aplicacao.Validacoes
             public static bool DataVendaValida(DateTime data) =>
                 data >= new DateTime(2000, 1, 1) && data <= DateTime.UtcNow.AddDays(1);
 
-            public static string RegexNome => @"^[a-zA-ZÀ-ÿ\s'\-]+$";
+            public static string RegexNome => @"^(?=.*[a-zA-ZÀ-ÿ])[a-zA-ZÀ-ÿ\s'\-]+$";
 
             public static bool TemPeriodoValido(FiltroRankingDto filtro)
             {

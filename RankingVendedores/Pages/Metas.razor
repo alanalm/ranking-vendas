@@ -1,13 +1,12 @@
 ﻿@page "/metas"
 @page "/metas/{indicadorId:int}"
+@using RankingVendedores.Servicos.Interfaces
 @using RankingVendedores.ViewModels
 @using MudBlazor
 @using Ranking.Aplicacao.DTOs
 @using Ranking.Aplicacao.Interfaces
 @using Ranking.Aplicacao
 @using Ranking.Dominio.Enums
-@using RankingVendedores.Services
-@inject IApiService ApiService
 @inject IDialogService DialogService
 @inject MetaViewModel ViewModel
 @inject ISnackbar Snackbar
@@ -67,9 +66,9 @@
                 <MudTh>Data Início</MudTh>
                 <MudTh>Data Fim</MudTh>
                 <MudTh>Ativa</MudTh>
+                <MudTh></MudTh>
             </HeaderContent>
             <RowTemplate>
-                @* <MudTd DataLabel="ID">@context.Id</MudTd> *@
                 <MudTd DataLabel="Indicador">@context.NomeIndicador</MudTd>
                 <MudTd DataLabel="Valor">@context.Valor.ToString("C")</MudTd>
                 <MudTd DataLabel="Data Início">@(context.DataInicio?.ToString("dd/MM/yyyy") ?? "N/A")</MudTd>

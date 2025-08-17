@@ -3,10 +3,9 @@
 @using Ranking.Aplicacao.Interfaces
 @using Ranking.Aplicacao
 @using Ranking.Dominio.Enums
-@using RankingVendedores.Services
+@using RankingVendedores.Servicos.Interfaces
 @using RankingVendedores.ViewModels
 @inject IndicadorViewModel ViewModel
-@inject IApiService ApiService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 
@@ -29,6 +28,7 @@
         <HeaderContent>
             <MudTh>Nome</MudTh>
             <MudTh>Descrição</MudTh>
+            <MudTh></MudTh>
         </HeaderContent>
 
         <RowTemplate>
@@ -56,65 +56,29 @@
 
     private async Task AbrirModalCriacao()
     {
-        var modelo = new AtualizarIndicadorDto();
-        var parameters = new DialogParameters { ["Modelo"] = modelo };
+        ViewModel.IndicadorSelecionado = new IndicadorDto(); 
         var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
-
-        var dialog = DialogService.Show<IndicadorModal>("", parameters, options);
+        var dialog = DialogService.Show<IndicadorModal>("Novo Indicador", options);
         var result = await dialog.Result;
 
-        if (!result.Canceled && result.Data is AtualizarIndicadorDto criado)
+        if (!result.Canceled && result.Data is IndicadorDto criado)
         {
-            var dtoCriar = new CriarIndicadorDto
-            {
-                Nome = criado.Nome,
-                Descricao = criado.Descricao,
-                Tipo = criado.Tipo
-            };
-
-            var resultado = await ViewModel.CriarIndicadorAsync(dtoCriar);
-
-            if (resultado)
-            {
-                Snackbar.Add("Indicador criado com sucesso!", Severity.Success);
-                await ViewModel.CarregarIndicadoresAsync();
-            }
-            else
-            {
-                Snackbar.Add("Erro ao criar o indicador.", Severity.Error);
-            }
+            Snackbar.Add("Indicador criado com sucesso!", Severity.Success);
+            await ViewModel.CarregarIndicadoresAsync();
         }
     }
 
-
     private async Task AbrirModalEdicao(IndicadorDto indicador)
     {
-        var modelo = new AtualizarIndicadorDto
-        {
-            Id = indicador.Id,
-            Nome = indicador.Nome,
-            Descricao = indicador.Descricao
-        };
-
-        var parameters = new DialogParameters { ["Modelo"] = modelo };
+        ViewModel.IndicadorSelecionado = indicador; 
         var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
-
-        var dialog = DialogService.Show<IndicadorModal>("Editar Indicador", parameters, options);
+        var dialog = DialogService.Show<IndicadorModal>("Editar Indicador", options);
         var result = await dialog.Result;
 
-        if (!result.Canceled && result.Data is AtualizarIndicadorDto atualizado)
+        if (!result.Canceled && result.Data is IndicadorDto atualizado)
         {
-            var resultado = await ViewModel.AtualizarIndicadorAsync(atualizado);
-
-            if (resultado)
-            {
-                Snackbar.Add("Indicador atualizado com sucesso!", Severity.Success);
-                await ViewModel.CarregarIndicadoresAsync();
-            }
-            else
-            {
-                Snackbar.Add("Erro ao atualizar o indicador.", Severity.Error);
-            }
+            Snackbar.Add("Indicador atualizado com sucesso!", Severity.Success);
+            await ViewModel.CarregarIndicadoresAsync();
         }
     }
 

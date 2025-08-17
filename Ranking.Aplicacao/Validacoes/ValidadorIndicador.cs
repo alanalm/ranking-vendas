@@ -1,5 +1,6 @@
 ﻿using FluentValidation;
 using Ranking.Aplicacao.DTOs;
+using Ranking.Dominio.Enums;
 using static Ranking.Aplicacao.Validacoes.ValidadorBase;
 
 namespace Ranking.Aplicacao.Validacoes
@@ -21,6 +22,10 @@ namespace Ranking.Aplicacao.Validacoes
                 .WithMessage("A descrição do indicador é obrigatória.")
                 .Length(10, 500)
                 .WithMessage("A descrição deve ter entre 10 e 500 caracteres.");
+
+            RuleFor(i => i.Tipo)
+                .NotEqual(TipoIndicador.Nenhum)
+                .WithMessage("O tipo do indicador é obrigatório.");
         }
     }
 
@@ -45,6 +50,10 @@ namespace Ranking.Aplicacao.Validacoes
                 .WithMessage("A descrição do indicador é obrigatória.")
                 .Length(10, 500)
                 .WithMessage("A descrição deve ter entre 10 e 500 caracteres.");
+
+            RuleFor(i => i.Tipo)
+                .NotEqual(TipoIndicador.Nenhum)
+                .WithMessage("O tipo do indicador é obrigatório.");
         }
     }
 }

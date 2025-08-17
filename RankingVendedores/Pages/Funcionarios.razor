@@ -1,12 +1,12 @@
 ﻿@page "/funcionarios"
-@using RankingVendedores.Services
+@using RankingVendedores.Servicos.Interfaces
 @using RankingVendedores.ViewModels
 @using Ranking.Aplicacao.DTOs
 @using MudBlazor
 @inject FuncionarioViewModel ViewModel
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
-@inject IApiService ApiService
+@inject IFuncionarioApiService ApiService
 
 <PageTitle>Funcionários</PageTitle>
 
@@ -83,14 +83,12 @@
                           FixedHeader="true"
                           Height="500px">
                     <HeaderContent>
-                        @* <MudTh>ID</MudTh> *@
                         <MudTh>Nome</MudTh>
                         <MudTh>Data de Criação</MudTh>
                         <MudTh>Última Atualização</MudTh>
-                        @* <MudTh>Ações</MudTh> *@
+                    <MudTh></MudTh>
                     </HeaderContent>
                     <RowTemplate>
-                        @* <MudTd DataLabel="ID">@context.Id</MudTd> *@
                         <MudTd DataLabel="Nome">@context.Nome</MudTd>
                         <MudTd DataLabel="Data de Criação">@context.DataCriacao.ToString("dd/MM/yyyy HH:mm")</MudTd>
                         <MudTd DataLabel="Última Atualização">@context.DataAtualizacao?.ToString("dd/MM/yyyy HH:mm")</MudTd>

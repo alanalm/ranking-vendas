@@ -275,11 +275,11 @@
     public static string FormatarValorCompacto(decimal valor)
     {
         if (valor >= 1_000_000_000)
-            return $"R$ {(valor / 1_000_000_000M):0.##}B";
+            return $" {(valor / 1_000_000_000M):0.##}B";
         if (valor >= 1_000_000)
-            return $"R$ {(valor / 1_000_000M):0.##}M";
+            return $" {(valor / 1_000_000M):0.##}M";
         if (valor >= 1_000)
-            return $"R$ {(valor / 1_000M):0.##}K";
+            return $" {(valor / 1_000M):0.##}K";
         return valor.ToString("C0");
     }
 

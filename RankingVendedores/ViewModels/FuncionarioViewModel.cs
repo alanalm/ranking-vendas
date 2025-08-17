@@ -1,15 +1,19 @@
-﻿using MudBlazor;
+﻿using Aplicacao.Utils;
+using MudBlazor;
 using Ranking.Aplicacao.DTOs;
+using Ranking.Aplicacao.Validacoes;
 using RankingVendedores.Pages;
-using RankingVendedores.Services;
+using RankingVendedores.Servicos.Interfaces;
 using System.Collections.ObjectModel;
 
 namespace RankingVendedores.ViewModels
 {
     public class FuncionarioViewModel : ViewModelBase
     {
-        private readonly IApiService _apiService;
+        private readonly IFuncionarioApiService _apiService;
         private readonly IDialogService _dialogService;
+        private readonly ValidadorCriarFuncionario _validadorCriarFuncionario = new();
+        private readonly ValidadorAtualizarFuncionario _validadorAtualizarFuncionario = new();
 
         public string? FiltroNome { get; set; }
         public ObservableCollection<FuncionarioDto> FuncionariosFiltrados { get; set; } = new();
@@ -22,7 +26,7 @@ namespace RankingVendedores.ViewModels
             set => SetProperty(ref _funcionarioSelecionado, value);
         }
 
-        public FuncionarioViewModel(IApiService apiService, IDialogService dialogService)
+        public FuncionarioViewModel(IFuncionarioApiService apiService, IDialogService dialogService)
         {
             _apiService = apiService ?? throw new ArgumentNullException(nameof(apiService));
             _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
@@ -87,7 +91,7 @@ namespace RankingVendedores.ViewModels
 
         public async Task AbrirModalNovoFuncionarioAsync()
         {
-            var parameters = new DialogParameters(); // vazio, criação
+            var parameters = new DialogParameters();
 
             var options = new DialogOptions
             {
@@ -96,8 +100,6 @@ namespace RankingVendedores.ViewModels
                 FullWidth = true,
                 BackdropClick = true
             };
-
-            Console.WriteLine("Abrindo modal de novo funcionário...");
 
             var dialog = _dialogService.Show<FuncionarioModal>("Novo Funcionário", parameters, options);
             var resultado = await dialog.Result;
@@ -108,45 +110,44 @@ namespace RankingVendedores.ViewModels
             }
         }
 
-        public async Task<bool> CriarFuncionarioAsync(CriarFuncionarioDto novo)
+        public async Task<ResultadoOperacao<FuncionarioDto>> CriarFuncionarioAsync(CriarFuncionarioDto dto)
         {
-            if (string.IsNullOrWhiteSpace(novo.Nome))
-            {
-                DefinirErro("O nome do funcionário é obrigatório.");
-                return false;
-            }
+            var resultadoValidacao = await _validadorCriarFuncionario.ValidateAsync(dto);
 
-            var sucesso = await ExecutarOperacaoAsync(async () =>
+            if (!ValidarDto(_validadorCriarFuncionario, dto))
+                return ResultadoOperacao<FuncionarioDto>.CriarFalha("Dados inválidos");
+
+            var resultado = await ExecutarOperacaoAsync(async () =>
             {
-                await _apiService.CriarFuncionarioAsync(novo);
-                return true;
+                var funcionarioCriado = await _apiService.CriarFuncionarioAsync(dto);
+                return funcionarioCriado;
             }, "Funcionário criado com sucesso!");
 
-            if (sucesso)
+            if (resultado.Sucesso)
                 await CarregarFuncionariosAsync();
 
-            return sucesso;
+            return resultado;
         }
 
-        public async Task<bool> AtualizarFuncionarioAsync(AtualizarFuncionarioDto dto)
+        public async Task<ResultadoOperacao<FuncionarioDto>> AtualizarFuncionarioAsync(AtualizarFuncionarioDto dto)
         {
-            if (dto == null || string.IsNullOrWhiteSpace(dto.Nome))
-            {
-                DefinirErro("Dados inválidos para atualização.");
-                return false;
-            }
+            var resultadoValidacao = await _validadorAtualizarFuncionario.ValidateAsync(dto);
 
-            var sucesso = await ExecutarOperacaoAsync(async () =>
+            if (!ValidarDto(_validadorAtualizarFuncionario, dto))
+                return ResultadoOperacao<FuncionarioDto>.CriarFalha("Dados inválidos");
+
+            var resultado = await ExecutarOperacaoAsync(async () =>
             {
-                await _apiService.AtualizarFuncionarioAsync(dto);
-                return true;
+                var funcionarioAtualizado = await _apiService.AtualizarFuncionarioAsync(dto);
+                return funcionarioAtualizado;
             }, "Funcionário atualizado com sucesso!");
 
-            if (sucesso)
+            if (resultado.Sucesso)
                 await CarregarFuncionariosAsync();
 
-            return sucesso;
+            return resultado;
         }
+
 
         public async Task<bool> RemoverFuncionarioAsync(FuncionarioDto funcionario)
         {

@@ -31,9 +31,8 @@ namespace Ranking.Aplicacao.Validacoes
                 .WithMessage("A data da venda deve estar entre 01/01/2000 e a data atual.");
 
             RuleFor(v => v.Descricao)
-                .MaximumLength(500)
-                .WithMessage("A descrição não pode exceder 500 caracteres.")
-                .When(v => !string.IsNullOrEmpty(v.Descricao));
+                 .NotEmpty().WithMessage("A descrição é obrigatória.")
+                 .MaximumLength(500).WithMessage("A descrição não pode exceder 500 caracteres.");
         }
     }
 
@@ -65,9 +64,8 @@ namespace Ranking.Aplicacao.Validacoes
                 .WithMessage("A data da venda deve estar entre 01/01/2000 e a data atual.");
 
             RuleFor(v => v.Descricao)
-                .MaximumLength(500)
-                .WithMessage("A descrição não pode exceder 500 caracteres.")
-                .When(v => !string.IsNullOrEmpty(v.Descricao));
+                .NotEmpty().WithMessage("A descrição é obrigatória.")
+                .MaximumLength(500).WithMessage("A descrição não pode exceder 500 caracteres.");
         }
     }
 }
