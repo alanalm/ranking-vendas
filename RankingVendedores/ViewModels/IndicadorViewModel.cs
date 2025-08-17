@@ -1,6 +1,7 @@
-﻿using MudBlazor;
+﻿using Aplicacao.Utils;
+using MudBlazor;
 using Ranking.Aplicacao.DTOs;
-using Ranking.Dominio.Enums;
+using Ranking.Aplicacao.Validacoes;
 using RankingVendedores.Servicos.Interfaces;
 using System.Collections.ObjectModel;
 
@@ -9,9 +10,12 @@ namespace RankingVendedores.ViewModels
     public class IndicadorViewModel : ViewModelBase
     {
         private readonly IIndicadorApiService _apiService;
+        private readonly ValidadorCriarIndicador _validadorCriarIndicador = new();
+        private readonly ValidadorAtualizarIndicador _validadorAtualizarIndicador = new();
 
         public ObservableCollection<IndicadorDto> Indicadores { get; private set; } = new();
         public ObservableCollection<IndicadorDto> IndicadoresFiltrados { get; private set; } = new();
+        public ObservableCollection<string> MensagensErro { get; } = new();
 
         private IndicadorDto? _indicadorSelecionado;
         public IndicadorDto? IndicadorSelecionado
@@ -63,67 +67,47 @@ namespace RankingVendedores.ViewModels
             OnPropertyChanged(nameof(IndicadoresFiltrados));
         }
 
-        public async Task<bool> CriarIndicadorAsync(CriarIndicadorDto dto)
+        public async Task<ResultadoOperacao> CriarIndicadorAsync(CriarIndicadorDto dto)
         {
-            if (string.IsNullOrWhiteSpace(dto.Nome))
-            {
-                DefinirErro("O nome do indicador é obrigatório.");
-                return false;
-            }
+            var resultadoValidacao = _validadorCriarIndicador.Validate(dto);
+            if (!ValidarDto(_validadorCriarIndicador, dto))
+                return ResultadoOperacao<IndicadorDto>.CriarFalha("Dados inválidos");
 
-            if (string.IsNullOrWhiteSpace(dto.Descricao) || dto.Descricao.Length < 10 || dto.Descricao.Length > 100)
-            {
-                DefinirErro("A descrição deve ter entre 10 e 100 caracteres.");
-                return false;
-            }
-
-            if (dto.Tipo == TipoIndicador.Nenhum)
-            {
-                DefinirErro("O tipo do indicador é obrigatório.");
-                return false;
-            }
 
             var resultado = await ExecutarOperacaoAsync(
-            () => _apiService.CriarIndicadorAsync(dto),
-            "Indicador criado com sucesso!");
+                async () =>
+                {
+                   var indicadorCriado = await _apiService.CriarIndicadorAsync(dto);
+                    return indicadorCriado;
+                }, "Indicador criado com sucesso!"
+            );
 
             if (resultado.Sucesso)
                 await CarregarIndicadoresAsync();
 
-            return resultado.Sucesso;
+            return resultado;
         }
 
-        public async Task<bool> AtualizarIndicadorAsync(AtualizarIndicadorDto dto)
+        public async Task<ResultadoOperacao> AtualizarIndicadorAsync(AtualizarIndicadorDto dto)
         {
-            if (string.IsNullOrWhiteSpace(dto.Nome))
-            {
-                DefinirErro("O nome do indicador é obrigatório.");
-                return false;
-            }
+            var resultadoValidacao = _validadorAtualizarIndicador.Validate(dto);
+            if (!ValidarDto(_validadorAtualizarIndicador, dto))
+                return ResultadoOperacao<IndicadorDto>.CriarFalha("Dados inválidos");
 
-            if (string.IsNullOrWhiteSpace(dto.Descricao) || dto.Descricao.Length < 10 || dto.Descricao.Length > 100)
-            {
-                DefinirErro("A descrição deve ter entre 10 e 100 caracteres.");
-                return false;
-            }
+            var resultado = await ExecutarOperacaoAsync(
+                async () =>
+                {
+                  var indicadorAtualizado =  await _apiService.AtualizarIndicadorAsync(dto);
+                    return indicadorAtualizado;
+                }, "Indicador atualizado com sucesso!"
+            );
 
-            if (dto.Tipo == TipoIndicador.Nenhum)
-            {
-                DefinirErro("O tipo do indicador é obrigatório.");
-                return false;
-            }
-
-            var sucesso = await ExecutarOperacaoAsync(async () =>
-            {
-                await _apiService.AtualizarIndicadorAsync(dto);
-                return true;
-            }, "Indicador atualizado com sucesso!");
-
-            if (sucesso)
+            if (resultado.Sucesso)
                 await CarregarIndicadoresAsync();
 
-            return sucesso;
+            return resultado;
         }
+
 
         public async Task<bool> RemoverIndicadorAsync(IndicadorDto indicador)
         {

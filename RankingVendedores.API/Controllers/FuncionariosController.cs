@@ -1,8 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Ranking.Aplicacao.DTOs;
 using Ranking.Aplicacao.Interfaces;
-using Ranking.Aplicacao.Servicos;
+using Ranking.Aplicacao.Validacoes;
 using Ranking.Infraestrutura.Persistencia;
 
 namespace RankingVendedores.API.Controllers
@@ -121,9 +120,14 @@ namespace RankingVendedores.API.Controllers
         {
             try
             {
-                var erroValidacao = ValidarModelo();
-                if (erroValidacao != null)
-                    return erroValidacao;
+                var validador = new ValidadorCriarFuncionario();
+                var resultadoValidacao = await validador.ValidateAsync(criarFuncionarioDto);
+
+                if (!resultadoValidacao.IsValid)
+                {
+                    var mensagens = resultadoValidacao.Errors.Select(e => e.ErrorMessage);
+                    return BadRequest(new { Erros = mensagens });
+                }
 
                 var jaExiste = await _servicoFuncionario.JaExisteComNomeAsync(criarFuncionarioDto.Nome);
                 if (!jaExiste.Sucesso)

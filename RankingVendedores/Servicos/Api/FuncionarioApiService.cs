@@ -60,23 +60,36 @@ namespace RankingVendedores.Servicos.Api
         }
 
 
-        public async Task<FuncionarioDto> CriarFuncionarioAsync(CriarFuncionarioDto funcionario)
+        public async Task<ResultadoOperacao<FuncionarioDto>> CriarFuncionarioAsync(CriarFuncionarioDto funcionario)
         {
             var response = await _httpClient.PostAsJsonAsync("api/funcionarios", funcionario, _jsonOptions);
-            response.EnsureSuccessStatusCode();
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var erro = await response.Content.ReadAsStringAsync();
+                return ResultadoOperacao<FuncionarioDto>.CriarFalha($"Erro ao criar funcionário: {erro}");
+            }
 
             var funcionarioCriado = await response.Content.ReadFromJsonAsync<FuncionarioDto>(_jsonOptions);
-            return funcionarioCriado ?? throw new InvalidOperationException("Erro ao criar funcionário");
+
+            if (funcionarioCriado is null)
+                return ResultadoOperacao<FuncionarioDto>.CriarFalha("Erro ao criar funcionário: resposta vazia");
+
+            return ResultadoOperacao<FuncionarioDto>.CriarSucesso(funcionarioCriado, "Funcionário criado com sucesso");
         }
 
-        public async Task<FuncionarioDto> AtualizarFuncionarioAsync(AtualizarFuncionarioDto funcionario)
+
+        public async Task<ResultadoOperacao<FuncionarioDto>> AtualizarFuncionarioAsync(AtualizarFuncionarioDto funcionario)
         {
             var response = await _httpClient.PutAsJsonAsync($"api/funcionarios/{funcionario.Id}", funcionario, _jsonOptions);
+
             response.EnsureSuccessStatusCode();
 
-            var funcionarioAtualizado = await response.Content.ReadFromJsonAsync<FuncionarioDto>(_jsonOptions);
-            return funcionarioAtualizado ?? throw new InvalidOperationException("Erro ao atualizar funcionário");
+            var resultado = await response.Content.ReadFromJsonAsync<ResultadoOperacao<FuncionarioDto>>(_jsonOptions);
+
+            return resultado ?? ResultadoOperacao<FuncionarioDto>.CriarFalha("Erro ao atualizar funcionário");
         }
+
 
         public async Task RemoverFuncionarioAsync(int id)
         {

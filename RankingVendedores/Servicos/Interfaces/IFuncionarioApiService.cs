@@ -11,9 +11,9 @@ namespace RankingVendedores.Servicos.Interfaces
 
         Task<List<FuncionarioDto>> PesquisarFuncionariosAsync(string nome);
 
-        Task<FuncionarioDto> CriarFuncionarioAsync(CriarFuncionarioDto funcionario);
+        Task<ResultadoOperacao<FuncionarioDto>> CriarFuncionarioAsync(CriarFuncionarioDto funcionario);
 
-        Task<FuncionarioDto> AtualizarFuncionarioAsync(AtualizarFuncionarioDto funcionario);
+        Task<ResultadoOperacao<FuncionarioDto>> AtualizarFuncionarioAsync(AtualizarFuncionarioDto funcionario);
 
         Task RemoverFuncionarioAsync(int id);
 

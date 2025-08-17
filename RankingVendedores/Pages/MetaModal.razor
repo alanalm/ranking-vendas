@@ -7,6 +7,9 @@
 
 <MudDialog>
     <DialogContent>
+
+         <ErroValidacao ViewModel="ViewModel" />
+
         @if (ViewModel.MetaEdicao != null)
         {
             <EditForm Model="MetaSelecionada" OnValidSubmit="SalvarAsync">

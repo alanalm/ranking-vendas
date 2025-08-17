@@ -25,7 +25,7 @@ namespace Ranking.Aplicacao.Servicos
             IValidator<CriarVendaDto> validadorCriacao,
             IValidator<AtualizarVendaDto> validadorAtualizacao,
             IMapper mapper,
-            ILogger<VendaServico> logger)  // injetar logger
+            ILogger<VendaServico> logger) 
         {
             _repositorioVenda = repositorioVenda;
             _repositorioFuncionario = repositorioFuncionario;
@@ -37,11 +37,8 @@ namespace Ranking.Aplicacao.Servicos
 
         public async Task<List<VendaDto>> ObterTodosAsync()
         {
-            Console.WriteLine("[VendaServico] Iniciando carregamento de vendas");
             var vendas = await _repositorioVenda.ObterTodos();
-            Console.WriteLine("Qtd vendas no banco: " + vendas.Count);
             var funcionarios = await _repositorioFuncionario.ObterTodos();
-            Console.WriteLine("Qtd funcionarios no banco: " + funcionarios.Count);
 
 
             var vendasDto = vendas.Select(v => new VendaDto

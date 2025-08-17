@@ -18,7 +18,6 @@ namespace Ranking.Infraestrutura.Repositorios
         public async Task<List<Venda>> ObterTodos()
         {
             var lista = await _contexto.Vendas.ToListAsync();
-            Console.WriteLine($"[RepositorioVenda] Total vendas carregadas do banco: {lista.Count}");
             return lista;
         }
 

@@ -1,4 +1,5 @@
 ﻿using Aplicacao.Utils;
+using FluentValidation;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
@@ -6,8 +7,9 @@ namespace RankingVendedores.ViewModels
 {
     public abstract class ViewModelBase : INotifyPropertyChanged
     {
+        public IEnumerable<string> MensagensErro => _erros.SelectMany(e => e.Value);
         /// Evento disparado quando uma propriedade é alterada.
-        
+
         public event PropertyChangedEventHandler? PropertyChanged;
 
         // Dicionário para armazenar erros de validação por propriedade
@@ -243,14 +245,72 @@ namespace RankingVendedores.ViewModels
             ErrorsChanged?.Invoke(this, new DataErrorsChangedEventArgs(propriedade));
         }
 
-        // Método abstrato que as subclasses devem implementar para validar o modelo
-        //public abstract bool Validar();
+        public bool ValidarDto<T>(AbstractValidator<T> validador, T dto)
+        {
+            LimparTodosErros();
 
-        // Exemplo simples: Método para executar validação e limpar erros antigos
-        //public bool ValidarESalvarErros()
-        //{
-        //    LimparTodosErros();
-        //    return Validar();
-        //}
+            var resultado = validador.Validate(dto);
+
+            if (!resultado.IsValid)
+            {
+                foreach (var erro in resultado.Errors)
+                {
+                    DefinirErroValidacao(erro.PropertyName, erro.ErrorMessage);
+                }
+
+                return false;
+            }
+
+            return true;
+        }
+        public IEnumerable<string> GetPropriedadesComErros()
+        {
+            return _erros.Keys.ToList();
+        }
+        public ResultadoOperacao ValidarDtoResultado<T>(AbstractValidator<T> validador, T dto)
+        {
+            LimparTodosErros();
+
+            var resultadoValidacao = validador.Validate(dto);
+
+            if (!resultadoValidacao.IsValid)
+            {
+                foreach (var erro in resultadoValidacao.Errors)
+                {
+                    DefinirErroValidacao(erro.PropertyName, erro.ErrorMessage);
+                }
+
+                var mensagens = resultadoValidacao.Errors
+                    .Select(e => e.ErrorMessage)
+                    .ToList();
+
+                return ResultadoOperacao.CriarFalha(mensagens);
+            }
+
+            return ResultadoOperacao.CriarSucesso("Validação concluída.");
+        }
+
+        public async Task<ResultadoOperacao> ValidarDtoResultadoAsync<T>(IValidator<T> validador, T dto)
+        {
+            LimparTodosErros();
+
+            var resultadoValidacao = await validador.ValidateAsync(dto);
+
+            if (!resultadoValidacao.IsValid)
+            {
+                foreach (var erro in resultadoValidacao.Errors)
+                {
+                    DefinirErroValidacao(erro.PropertyName, erro.ErrorMessage);
+                }
+
+                var mensagens = resultadoValidacao.Errors
+                    .Select(e => e.ErrorMessage)
+                    .ToList();
+
+                return ResultadoOperacao.CriarFalha(mensagens);
+            }
+
+            return ResultadoOperacao.CriarSucesso("Validação concluída.");
+        }
     }
 }

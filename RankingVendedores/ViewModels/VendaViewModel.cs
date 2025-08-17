@@ -16,6 +16,7 @@ namespace RankingVendedores.ViewModels
         private readonly IVendaApiService _apiService;
         private readonly IFuncionarioApiService _funcionarioApiService;
         private readonly ValidadorCriarVenda _validadorCriarVenda = new();
+        private readonly ValidadorAtualizarVenda _validadorAtualizarVenda = new();
 
         private List<VendaDto> _vendasOriginais = new();
 
@@ -308,19 +309,15 @@ namespace RankingVendedores.ViewModels
         public async Task<ResultadoOperacao> CriarVendaAsync()
         {
             if (NovaVenda == null)
-                return ResultadoOperacao.CriarFalha("Preencha os dados da nova meta.");
+                return ResultadoOperacao.CriarFalha("Preencha os dados da nova venda.");
 
-            var resultadoValidacao = _validadorCriarVenda.Validate(NovaVenda);
-            if (!resultadoValidacao.IsValid)
-            {
-                var mensagem = resultadoValidacao.Errors.First().ErrorMessage;
-                return ResultadoOperacao.CriarFalha(mensagem);
-            }
+            var resultadoValidacao = await ValidarDtoResultadoAsync(_validadorCriarVenda, NovaVenda);
+            if (!resultadoValidacao.Sucesso)
+                return resultadoValidacao;
 
             try
             {
                 EstaCarregando = true;
-
                 await _apiService.CriarVendaAsync(NovaVenda);
                 FecharModalCriacao();
                 await CarregarVendasAsync();
@@ -329,14 +326,13 @@ namespace RankingVendedores.ViewModels
             }
             catch (Exception ex)
             {
-                return ResultadoOperacao.CriarFalha($"Erro ao criar Venda: {ex.Message}");
+                return ResultadoOperacao.CriarFalha($"Erro ao criar venda: {ex.Message}");
             }
             finally
             {
                 EstaCarregando = false;
             }
         }
-
 
         /// <summary>
         /// Atualiza uma venda existente.
@@ -355,6 +351,10 @@ namespace RankingVendedores.ViewModels
                 DataVenda = VendaEdicao.DataVenda,
                 Descricao = VendaEdicao.Descricao
             };
+
+            var resultadoValidacao = await ValidarDtoResultadoAsync(_validadorAtualizarVenda, dto);
+            if (!resultadoValidacao.Sucesso)
+                return resultadoValidacao;
 
             try
             {
