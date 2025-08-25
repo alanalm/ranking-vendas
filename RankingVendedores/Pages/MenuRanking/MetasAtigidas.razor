@@ -1,0 +1,46 @@
+﻿@page "/ranking/metas-atingidas"
+@inject NavigationManager Navigation
+
+<PageTitle>Ranking - Metas Atingidas</PageTitle>
+
+<MudPaper Class="pa-4">
+    <MudText Typo="Typo.h5" Class="mb-4">🏆 Ranking - Metas Atingidas</MudText>
+
+    <MudTable Items="@MockMetas" Hover="true" Bordered="true" Striped="true">
+        <HeaderContent>
+            <MudTh>Funcionário</MudTh>
+            <MudTh>Meta</MudTh>
+            <MudTh>Status</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Funcionário">@context.NomeFuncionario</MudTd>
+            <MudTd DataLabel="Meta">@context.DescricaoMeta</MudTd>
+            <MudTd DataLabel="Status">
+                @if (context.Atingida)
+                {
+                    <MudChip T="string" Color="Color.Success" Variant="Variant.Filled">Atingida</MudChip>
+                }
+                else
+                {
+                    <MudChip T="string" Color="Color.Error" Variant="Variant.Filled">Não Atingida</MudChip>
+                }
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private List<MetaMock> MockMetas = new()
+    {
+        new MetaMock { NomeFuncionario = "Ana Silva", DescricaoMeta = "20 vendas no mês", Atingida = true },
+        new MetaMock { NomeFuncionario = "Carlos Souza", DescricaoMeta = "20 vendas no mês", Atingida = false },
+        new MetaMock { NomeFuncionario = "Fernanda Lima", DescricaoMeta = "20 vendas no mês", Atingida = true }
+    };
+
+    public class MetaMock
+    {
+        public string NomeFuncionario { get; set; } = string.Empty;
+        public string DescricaoMeta { get; set; } = string.Empty;
+        public bool Atingida { get; set; }
+    }
+}

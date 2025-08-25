@@ -48,6 +48,7 @@ builder.Services.AddScoped<IMetaServico, MetaServico>();
 builder.Services.AddScoped<IVendaServico, VendaServico>();
 builder.Services.AddScoped<IRankingServico, RankingServico>();
 builder.Services.AddScoped<ICalculadoraDesempenhoServico, CalculadoraDesempenhoServico>();
+builder.Services.AddScoped<IConfiguracoesService, ConfiguracoesService>();
 
 // Configurar FluentValidation
 builder.Services.AddFluentValidationAutoValidation();

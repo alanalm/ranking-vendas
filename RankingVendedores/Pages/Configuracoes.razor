@@ -1,0 +1,115 @@
+﻿@page "/configuracoes"
+@using MudBlazor
+@using Ranking.Aplicacao.Interfaces
+@using Ranking.Aplicacao.Servicos
+@inject ISnackbar Snackbar
+@inject ConfiguracoesViewModel ViewModel
+@inject IConfiguracoesService ConfiguracoesService
+
+<PageTitle>Configurações</PageTitle>
+
+<MudPaper Class="pa-6 mx-auto" Style="max-width:500px;">
+    <MudText Typo="Typo.h6" Class="mb-4">
+        <MudIcon Icon="@Icons.Material.Filled.Settings" Class="mr-2" />Configurações do Sistema
+    </MudText>
+
+    <MudForm @ref="FormGerais">
+        <MudStack Spacing="3">
+            <!-- Período Padrão -->
+            <MudSelect T="PeriodoPadrao" Label="Período padrão do ranking"
+                       @bind-Value="ViewModel.Configuracoes.PeriodoPadrao" Variant="Variant.Outlined">
+                <MudSelectItem Value="PeriodoPadrao.Mensal">Mensal</MudSelectItem>
+                <MudSelectItem Value="PeriodoPadrao.Trimestral">Trimestral</MudSelectItem>
+                <MudSelectItem Value="PeriodoPadrao.Anual">Anual</MudSelectItem>
+            </MudSelect>
+
+            <!-- Meta mínima -->
+            <MudTextField T="int" Label="Meta mínima de desempenho (%)"
+                          @bind-Value="ViewModel.Configuracoes.MetaMinima"
+                          Variant="Variant.Outlined" />
+
+            <!-- Top X funcionários -->
+            <MudTextField T="int" Label="Exibir apenas Top X funcionários"
+                          @bind-Value="ViewModel.Configuracoes.TopFuncionarios"
+                          Variant="Variant.Outlined" />
+        </MudStack>
+
+        <MudStack Direction="Row" Justify="Justify.FlexEnd" Class="mt-4" Spacing="2">
+            <MudButton OnClick="SalvarConfiguracoes" Color="Color.Primary" Variant="Variant.Filled" Size="Size.Medium">
+                Salvar
+            </MudButton>
+            <MudButton Color="Color.Secondary" Variant="Variant.Outlined" OnClick="RestaurarPadroes">
+                <MudIcon Icon="@Icons.Material.Filled.Restore" Class="mr-2" />
+                Restaurar Padrões
+            </MudButton>
+        </MudStack>
+    </MudForm>
+</MudPaper>
+
+@code {
+    private MudForm FormGerais;
+    private ConfiguracoesDto _ultimaConfiguracao;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ViewModel.CarregarAsync();
+        _ultimaConfiguracao = new ConfiguracoesDto
+        {
+            PeriodoPadrao = ViewModel.Configuracoes.PeriodoPadrao,
+            MetaMinima = ViewModel.Configuracoes.MetaMinima,
+            TopFuncionarios = ViewModel.Configuracoes.TopFuncionarios
+        };
+    }
+
+    private ConfiguracoesDto ObterPadroes() 
+    {
+        return new ConfiguracoesDto 
+        { 
+            PeriodoPadrao = PeriodoPadrao.Mensal, 
+            MetaMinima = 80, 
+            TopFuncionarios = 10 
+        }; 
+    }
+
+    private void RestaurarPadroes()
+    {
+        ViewModel.Configuracoes = ObterPadroes();
+        StateHasChanged();
+        Snackbar.Add("Configurações restauradas para o padrão.", Severity.Info);
+    }
+
+    private async Task SalvarConfiguracoes()
+    {
+        await FormGerais.Validate();
+        if (FormGerais.IsValid)
+        {
+            var depois = ViewModel.Configuracoes;
+
+            if (_ultimaConfiguracao.PeriodoPadrao == depois.PeriodoPadrao &&
+                _ultimaConfiguracao.MetaMinima == depois.MetaMinima &&
+                _ultimaConfiguracao.TopFuncionarios == depois.TopFuncionarios)
+            {
+                Snackbar.Add("Nenhuma alteração detectada.", Severity.Info);
+                return;
+            }
+
+            await ViewModel.SalvarGerais();
+
+            _ultimaConfiguracao = new ConfiguracoesDto
+            {
+                PeriodoPadrao = depois.PeriodoPadrao,
+                MetaMinima = depois.MetaMinima,
+                TopFuncionarios = depois.TopFuncionarios
+            };
+        }
+        else
+        {
+            Snackbar.Add("Por favor, corrija os erros antes de salvar.", Severity.Error);
+        }
+    }
+
+    private async Task CarregarConfiguracoes()
+    {
+        await ViewModel.CarregarAsync();
+    }
+}

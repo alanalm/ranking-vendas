@@ -1,13 +1,18 @@
 ﻿using MudBlazor;
 using Ranking.Aplicacao.DTOs;
+using Ranking.Aplicacao.Interfaces;
+using Ranking.Aplicacao.Servicos;
+using Ranking.Dominio.Enums;
 using RankingVendedores.Servicos.Interfaces;
 using System.Collections.ObjectModel;
+using System.Threading.Tasks;
 
 namespace RankingVendedores.ViewModels
 {
     public class RankingViewModel : ViewModelBase
     {
         private readonly IRankingApiService _apiService;
+        private readonly IConfiguracoesService _configuracoesService;
 
         public ObservableCollection<RankingDto> Ranking { get; } = new();
 
@@ -93,23 +98,62 @@ namespace RankingVendedores.ViewModels
             get => _exibindoPeriodoAtual;
             set => SetProperty(ref _exibindoPeriodoAtual, value);
         }
-
-        /// <param name="apiService">Serviço para comunicação com a API.</param>
-        public RankingViewModel(IRankingApiService apiService)
+        public RankingViewModel(IRankingApiService apiService, IConfiguracoesService configuracoesService)
         {
             _apiService = apiService ?? throw new ArgumentNullException(nameof(apiService));
+            _configuracoesService = configuracoesService ?? throw new ArgumentNullException(nameof(configuracoesService));
 
-            // Inicializar com período atual (mês atual)
-            //var hoje = DateTime.Today;
-            //DataInicio = new DateTime(hoje.Year, hoje.Month, 1);
-            //DataFim = DataInicio.Value.AddMonths(1).AddDays(-1);
-
-            //Ajustando o período para os últimos dois meses para testes.
-            var hoje = DateTime.Today;
-            var doisMesesAtras = hoje.AddMonths(-2);
-            DataInicio = new DateTime(doisMesesAtras.Year, doisMesesAtras.Month, 1);
-            DataFim = hoje;
+            AplicarConfiguracoesGlobais();
         }
+
+        private async Task ConfiguracoesAlteradas()
+        {
+           await AplicarConfiguracoesGlobais();
+            _ = CarregarRankingAsync();
+        }
+
+        private async Task AplicarConfiguracoesGlobais()
+        {
+            var cfg = await _configuracoesService.ObterAsync();
+            var hoje = DateTime.Today;
+
+            switch (cfg.PeriodoPadrao)
+            {
+                case PeriodoPadrao.Mensal:
+                    DataInicio = new DateTime(hoje.Year, hoje.Month, 1);
+                    DataFim = DataInicio.Value.AddMonths(1).AddDays(-1);
+                    break;
+
+                case PeriodoPadrao.Trimestral:
+                    var trimestreInicio = new DateTime(hoje.Year, ((hoje.Month - 1) / 3) * 3 + 1, 1);
+                    DataInicio = trimestreInicio;
+                    DataFim = trimestreInicio.AddMonths(3).AddDays(-1);
+                    break;
+
+                case PeriodoPadrao.Anual:
+                    DataInicio = new DateTime(hoje.Year, 1, 1);
+                    DataFim = new DateTime(hoje.Year, 12, 31);
+                    break;
+            }
+        }
+
+
+        /// <param name="apiService">Serviço para comunicação com a API.</param>
+        //public RankingViewModel(IRankingApiService apiService)
+        //{
+        //    _apiService = apiService ?? throw new ArgumentNullException(nameof(apiService));
+
+        //    // Inicializar com período atual (mês atual)
+        //    //var hoje = DateTime.Today;
+        //    //DataInicio = new DateTime(hoje.Year, hoje.Month, 1);
+        //    //DataFim = DataInicio.Value.AddMonths(1).AddDays(-1);
+
+        //    //Ajustando o período para os últimos dois meses para testes.
+        //    var hoje = DateTime.Today;
+        //    var doisMesesAtras = hoje.AddMonths(-2);
+        //    DataInicio = new DateTime(doisMesesAtras.Year, doisMesesAtras.Month, 1);
+        //    DataFim = hoje;
+        //}
 
         public async Task CarregarRankingAsync()
         {
@@ -174,32 +218,34 @@ namespace RankingVendedores.ViewModels
 
         public async Task CarregarRankingPeriodoAtualAsync()
         {
-            // Ajustar o período para os últimos dois meses - teste.
-            var hoje = DateTime.Today;
-            var doisMesesAtras = hoje.AddMonths(-2);
-            DataInicio = new DateTime(doisMesesAtras.Year, doisMesesAtras.Month, 1);
-            DataFim = hoje;
-            //var hoje = DateTime.Today;
-            //DataInicio = new DateTime(hoje.Year, hoje.Month, 1);
-            //DataFim = DataInicio.Value.AddMonths(1).AddDays(-1);
-            ExibindoPeriodoAtual = true;
+            EstaCarregando = true;
 
-            var filtro = new FiltroRankingDto(DataInicio, DataFim, TipoOrdenacao);
-
-            var ranking = await ExecutarOperacaoAsync(async () =>
+            try
             {
-                return await _apiService.CalcularRankingAsync(filtro);
-            });
+               await AplicarConfiguracoesGlobais();
 
-            if (ranking != null)
-            {
+                var filtro = new FiltroRankingDto
+                {
+                    DataInicio = this.DataInicio,
+                    DataFim = this.DataFim,
+                    TipoOrdenacao = TipoOrdenacao
+                };
+
+                var ranking = await _apiService.CalcularRankingAsync(filtro);
+
+                //var top = _configuracoesService.Configuracoes.TopFuncionarios;
+                //if (top > 0)
+                //    ranking = ranking.Take(top);
+
                 Ranking.Clear();
                 foreach (var item in ranking)
-                {
                     Ranking.Add(item);
-                }
 
                 await CarregarEstatisticasAsync();
+            }
+            finally
+            {
+                EstaCarregando = false;
             }
         }
 
