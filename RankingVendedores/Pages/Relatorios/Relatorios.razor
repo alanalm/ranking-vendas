@@ -1,0 +1,55 @@
+﻿@page "/relatorios"
+@using MudBlazor
+
+<PageTitle>Relatórios</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudPaper Class="p-4">
+        <MudText Typo="Typo.h5" GutterBottom="true">📊 Relatórios</MudText>
+        <MudDivider Class="mb-4" />
+
+        <MudGrid>
+            <MudItem xs="12" sm="6" md="4">
+                <MudCard Class="mb-4">
+                    <MudCardContent>
+                        <MudText Typo="Typo.subtitle1">Relatório de Vendas</MudText>
+                        <MudText Typo="Typo.body2" Class="mb-2">
+                            Visualize as vendas realizadas por período e funcionário.
+                        </MudText>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.BarChart" Href="/relatorios/vendas">
+                            Abrir
+                        </MudButton>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="4">
+                <MudCard Class="mb-4">
+                    <MudCardContent>
+                        <MudText Typo="Typo.subtitle1">Relatório de Metas</MudText>
+                        <MudText Typo="Typo.body2" Class="mb-2">
+                            Consulte o desempenho das metas estabelecidas e alcançadas.
+                        </MudText>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PieChart"  Href="/relatorios/metas">
+                            Abrir
+                        </MudButton>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="4">
+                <MudCard Class="mb-4">
+                    <MudCardContent>
+                        <MudText Typo="Typo.subtitle1">Relatório de Desempenho</MudText>
+                        <MudText Typo="Typo.body2" Class="mb-2">
+                            Veja o Desempenho atualizado dos vendedores individualmente.
+                        </MudText>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.TrendingUp" Href="/relatorios/desempenho">
+                            Abrir
+                        </MudButton>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+</MudContainer>

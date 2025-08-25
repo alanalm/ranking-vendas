@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor.Services;
+using Ranking.Aplicacao.Interfaces;
+using Ranking.Aplicacao.Servicos;
 using RankingVendedores;
 using RankingVendedores.Servicos.Api;
 using RankingVendedores.Servicos.Interfaces;
@@ -39,12 +41,16 @@ public class Program
         builder.Services.AddScoped<IVendaApiService, VendaApiService>();
         builder.Services.AddScoped<IRankingApiService, RankingApiService>();
 
+        //Configurações globais
+        builder.Services.AddSingleton<IConfiguracoesService, ConfiguracoesService>();
+
         // Registrar ViewModels
         builder.Services.AddScoped<FuncionarioViewModel>();
         builder.Services.AddScoped<IndicadorViewModel>();
         builder.Services.AddScoped<MetaViewModel>();
         builder.Services.AddScoped<VendaViewModel>();
         builder.Services.AddScoped<RankingViewModel>();
+        builder.Services.AddScoped<ConfiguracoesViewModel>();
 
         await builder.Build().RunAsync();
 

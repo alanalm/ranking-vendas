@@ -1,0 +1,68 @@
+﻿@page "/ajuda"
+@inject ISnackbar Snackbar
+
+<PageTitle>Ajuda</PageTitle>
+
+<MudPaper Class="pa-4">
+    <MudText Typo="Typo.h5" Class="mb-4">❓ Central de Ajuda</MudText>
+
+    <MudExpansionPanels>
+        <MudExpansionPanel Text="Como cadastrar um funcionário?">
+            Vá até o menu <b>Funcionários</b>, clique em <b>Novo Funcionário</b>, preencha os dados e salve.
+        </MudExpansionPanel>
+
+        <MudExpansionPanel Text="Como cadastrar uma meta?">
+            No menu <b>Metas</b>, clique em <b>Nova Meta</b>, escolha o indicador, defina os valores e salve.
+        </MudExpansionPanel>
+
+        <MudExpansionPanel Text="Como funciona o ranking?">
+            O ranking é calculado automaticamente com base nas metas e vendas cadastradas.
+        </MudExpansionPanel>
+    </MudExpansionPanels>
+
+    <MudText Typo="Typo.h5" GutterBottom="true">❓ Ajuda</MudText>
+    <MudText Class="mb-4">
+        Nesta seção você encontrará orientações sobre o uso do sistema.
+    </MudText>
+
+    <MudAlert Severity="Severity.Info" Class="mb-4">
+        Em breve: documentação detalhada sobre cada funcionalidade.
+    </MudAlert>
+
+    <MudDivider Class="my-4" />
+
+    <MudText Typo="Typo.h6" GutterBottom="true">📩 Fale Conosco</MudText>
+    <MudText Class="mb-3">
+        Caso tenha dúvidas ou problemas, entre em contato com o administrador do sistema:
+    </MudText>
+
+    <MudForm @ref="_form" Model="@_contatoModel" @bind-IsValid="_formIsValid">
+
+    <MudTextField T="string" Label="Seu Nome" Variant="Variant.Outlined" Class="mb-3" />
+    <MudTextField T="string" Label="Seu Email" Variant="Variant.Outlined" Class="mb-3" />
+    <MudTextField T="string" Label="Mensagem" Variant="Variant.Outlined" Lines="4" Class="mb-3" />
+
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="EnviarMensagem">Enviar Mensagem</MudButton>
+    </MudForm>
+</MudPaper>
+
+@code {
+    private MudForm? _form;
+    private bool _formIsValid;
+    private ContatoModel _contatoModel = new();
+
+    private Task EnviarMensagem()
+    {
+        // Por enquanto, só simula envio
+        Snackbar.Add("Mensagem enviada com sucesso! (simulação)", Severity.Success);
+        _contatoModel = new();
+        return Task.CompletedTask;
+    }
+
+    public class ContatoModel
+    {
+        public string Nome { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Mensagem { get; set; } = string.Empty;
+    }
+}

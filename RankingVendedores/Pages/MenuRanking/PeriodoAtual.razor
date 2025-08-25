@@ -1,0 +1,47 @@
+﻿@page "/ranking/periodo-atual"
+@* @using Ranking.Aplicacao.DTOs *@
+@inject NavigationManager Navigation
+
+<PageTitle>Ranking - Período Atual</PageTitle>
+
+<MudPaper Class="pa-4">
+    <MudText Typo="Typo.h5" Class="mb-4">📊 Ranking - Período Atual</MudText>
+
+    <MudTable Items="@MockRanking" Hover="true" Bordered="true" Striped="true">
+        <HeaderContent>
+            <MudTh>Posição</MudTh>
+            <MudTh>Funcionário</MudTh>
+            <MudTh>Vendas</MudTh>
+            <MudTh>Meta</MudTh>
+            <MudTh>Desempenho</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Posição">@context.Posicao</MudTd>
+            <MudTd DataLabel="Funcionário">@context.NomeFuncionario</MudTd>
+            <MudTd DataLabel="Vendas">@context.TotalVendas</MudTd>
+            <MudTd DataLabel="Meta">@context.Meta</MudTd>
+            <MudTd DataLabel="Desempenho">
+                <MudProgressLinear Value="@context.Desempenho" Color="Color.Primary" />
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+</MudPaper>
+
+@code {
+    // Mock para exibir ranking
+    private List<RankingMock> MockRanking = new()
+    {
+        new RankingMock { Posicao = 1, NomeFuncionario = "Ana Silva", TotalVendas = 15, Meta = 20, Desempenho = 75 },
+        new RankingMock { Posicao = 2, NomeFuncionario = "Carlos Souza", TotalVendas = 12, Meta = 20, Desempenho = 60 },
+        new RankingMock { Posicao = 3, NomeFuncionario = "Fernanda Lima", TotalVendas = 8, Meta = 20, Desempenho = 40 }
+    };
+
+    public class RankingMock
+    {
+        public int Posicao { get; set; }
+        public string NomeFuncionario { get; set; } = string.Empty;
+        public int TotalVendas { get; set; }
+        public int Meta { get; set; }
+        public double Desempenho { get; set; }
+    }
+}
