@@ -42,9 +42,10 @@ public class DesempenhoDto
 
     public decimal PercentualQuantidade { get; set; } 
     public decimal PercentualValor { get; set; }
-
     public decimal PercentualAtingimentoMetas { get; set; }
-   public bool AtingiuTodasAsMetas { get; set; }
+    public bool AtingiuMetaQuantidade { get; set; }
+    public bool AtingiuMetaValor { get; set; }
+    public bool AtingiuTodasAsMetas { get; set; }
 }
 
 public class VendasDto

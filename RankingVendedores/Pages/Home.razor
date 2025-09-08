@@ -77,7 +77,7 @@
                     <CardHeaderContent>
                         <MudText Typo="Typo.h6">
                             <MudIcon Icon="@Icons.Material.Filled.EmojiEvents" Class="mr-2" />
-                            Top 5 Funcionários - @RankingViewModel.ObterDescricaoPeriodo()
+                            Top 5 Funcionários - Geral - @RankingViewModel.ObterDescricaoPeriodo()
                         </MudText>
                     </CardHeaderContent>
                     <CardHeaderActions>
@@ -127,6 +127,10 @@
                                         <MudChip T="string" Color="Color.Error" Size="Size.Small" Icon="@Icons.Material.Filled.Cancel">
                                             Pendente
                                         </MudChip>
+
+                                        <MudText Typo="Typo.caption" Color="Color.Warning">
+                                            @ObterMensagemMetaParcial(funcionario.Desempenho)
+                                        </MudText>
                                     }
                                 </MudItem>
                             </MudGrid>
@@ -243,11 +247,9 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Carregar dados iniciais
-            await Task.WhenAll(
-                RankingViewModel.CarregarRankingPeriodoAtualAsync(),
-                FuncionarioViewModel.CarregarFuncionariosAsync()
-            );
+        await RankingViewModel.InicializarAsync();
+
+        await FuncionarioViewModel.CarregarFuncionariosAsync();
     }
 
     private Color ObterCorPosicao(int posicao)
@@ -281,6 +283,19 @@
         if (valor >= 1_000)
             return $" {(valor / 1_000M):0.##}K";
         return valor.ToString("C0");
+    }
+
+    private string ObterMensagemMetaParcial(DesempenhoDto desempenho)
+    {
+        var mensagens = new List<string>();
+
+        if (desempenho.PercentualQuantidade < 100)
+            mensagens.Add("Meta de quantidade não atingida");
+
+        if (desempenho.PercentualValor < 100)
+            mensagens.Add("Meta de valor não atingida");
+
+        return string.Join(" • ", mensagens);
     }
 
 }

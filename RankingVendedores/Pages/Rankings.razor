@@ -172,7 +172,6 @@
                 <MudTh>Meta Qtd.</MudTh>
                 <MudTh>Meta Valor</MudTh>
                 <MudTh>Status</MudTh>
-               @*  <MudTh>Ações</MudTh> *@
             </HeaderContent>
             <RowTemplate>
                 <MudTd DataLabel="Posição">
@@ -206,7 +205,11 @@
                 <MudTd DataLabel="Meta Qtd.">@context.Desempenho.MetaQuantidade</MudTd>
                 <MudTd DataLabel="Meta Valor">@context.Desempenho.MetaValor.ToString("C")</MudTd>
                 <MudTd DataLabel="Status">
-                    @if (context.Desempenho.AtingiuTodasAsMetas)
+                    @if (
+                        (ViewModel.TipoOrdenacao == TipoOrdenacaoRanking.QuantidadeVendas && context.Desempenho.AtingiuMetaQuantidade) ||
+                        (ViewModel.TipoOrdenacao == TipoOrdenacaoRanking.ValorTotalVendas && context.Desempenho.AtingiuMetaValor) ||
+                        (ViewModel.TipoOrdenacao == TipoOrdenacaoRanking.DesempenhoGeral && context.Desempenho.AtingiuTodasAsMetas)
+                    )
                     {
                         <MudChip T="string" Color="Color.Success" Size="Size.Small" Icon="@Icons.Material.Filled.CheckCircle">
                             Atingiu
@@ -219,16 +222,6 @@
                         </MudChip>
                     }
                 </MudTd>
-              @*   <MudTd DataLabel="Ações">
-                    <MudButtonGroup Size="Size.Small" Variant="Variant.Text">
-                        <MudIconButton Icon="@Icons.Material.Filled.Visibility" 
-                                       Color="Color.Primary" 
-                                       OnClick="() => VisualizarDetalhes(context)" />
-                        <MudIconButton Icon="@Icons.Material.Filled.TrendingUp" 
-                                       Color="Color.Info" 
-                                       OnClick="() => VisualizarHistorico(context)" />
-                    </MudButtonGroup>
-                </MudTd> *@
             </RowTemplate>
         </MudTable>
     }
@@ -244,8 +237,6 @@
     protected override async Task OnInitializedAsync()
     {
         await ViewModel.CarregarRankingPeriodoAtualAsync();
-        await ViewModel.CarregarRankingAsync();
-        await ViewModel.CarregarEstatisticasAsync();
     }
 
     private async Task AplicarFiltros()

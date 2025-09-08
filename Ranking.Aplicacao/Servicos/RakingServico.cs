@@ -3,6 +3,7 @@ using AutoMapper;
 using Ranking.Aplicacao.DTOs;
 using Ranking.Aplicacao.Interfaces;
 using Ranking.Dominio.Entidades;
+using Ranking.Dominio.Enums;
 using Ranking.Dominio.Interfaces.Repositorios;
 
 public class RankingServico : IRankingServico
@@ -12,19 +13,22 @@ public class RankingServico : IRankingServico
     private readonly IRepositorioMeta _repositorioMeta;
     private readonly ICalculadoraDesempenhoServico _calculadoraDesempenho;
     private readonly IMapper _mapper;
+    private readonly IConfiguracoesService _configuracoesService;
 
     public RankingServico(
         IRepositorioFuncionario repositorioFuncionario,
         IRepositorioVenda repositorioVenda,
         IRepositorioMeta repositorioMeta,
         ICalculadoraDesempenhoServico calculadoraDesempenho,
-        IMapper mapper)
+        IMapper mapper,
+        IConfiguracoesService configuracoesService)
     {
         _repositorioFuncionario = repositorioFuncionario;
         _repositorioVenda = repositorioVenda;
         _repositorioMeta = repositorioMeta;
         _calculadoraDesempenho = calculadoraDesempenho;
         _mapper = mapper;
+        _configuracoesService = configuracoesService;
     }
 
     public async Task<ResultadoOperacao<IEnumerable<RankingDto>>> CalcularRankingAsync(FiltroRankingDto? filtro = null)
@@ -34,14 +38,26 @@ public class RankingServico : IRankingServico
             TipoOrdenacao = TipoOrdenacaoRanking.DesempenhoGeral
         };
 
+        var cfg = await _configuracoesService.ObterAsync();
+        var metaMinima = filtro.MetaMinima ?? cfg.MetaMinima;
+        var top = filtro.Top ?? cfg.TopFuncionarios;
+
         var funcionarios = await _repositorioFuncionario.ObterTodosAsync();
         var vendas = await FiltrarVendasAsync(filtro.DataInicio, filtro.DataFim);
         var metas = await FiltrarMetasAsync(filtro.DataInicio, filtro.DataFim);
 
+        TipoIndicador? indicadorSelecionado = filtro.TipoOrdenacao switch
+        {
+            TipoOrdenacaoRanking.QuantidadeVendas => TipoIndicador.Quantidade,
+            TipoOrdenacaoRanking.ValorTotalVendas => TipoIndicador.Receita,
+            _ => null // Geral ou NomeFuncionario
+        };
+
         var listaRanking = funcionarios.Select(funcionario =>
         {
             var vendasFuncionario = vendas.Where(v => v.FuncionarioId == funcionario.Id).ToList();
-            return _calculadoraDesempenho.CalcularRanking(funcionario, vendasFuncionario, metas, filtro.DataInicio, filtro.DataFim);
+            return _calculadoraDesempenho.CalcularRanking(funcionario, vendasFuncionario, metas, filtro.DataInicio, filtro.DataFim, metaMinima,
+            indicadorSelecionado);
         }).ToList();
 
         var rankingOrdenado = (filtro.TipoOrdenacao switch
@@ -49,8 +65,20 @@ public class RankingServico : IRankingServico
             TipoOrdenacaoRanking.DesempenhoGeral => listaRanking.OrderByDescending(dto => dto.Desempenho.Geral),
             TipoOrdenacaoRanking.QuantidadeVendas => listaRanking.OrderByDescending(dto => dto.Desempenho.QuantidadeVendas),
             TipoOrdenacaoRanking.PercentualAtingimento => listaRanking.OrderByDescending(dto => dto.Desempenho.PercentualAtingimentoMetas),
-            _ => listaRanking.OrderByDescending(dto => dto.Desempenho.ValorVendas)
+            TipoOrdenacaoRanking.NomeFuncionario =>  listaRanking.OrderBy(dto => dto.Funcionario.Nome),
+            TipoOrdenacaoRanking.ValorTotalVendas => listaRanking.OrderByDescending(dto => dto.Desempenho.ValorVendas),
+            _ => listaRanking.OrderByDescending(dto => dto.Desempenho.Geral)
         }).ToList();
+
+        if (filtro.MetaMinima.HasValue && filtro.MetaMinima.Value > 0)
+        {
+            rankingOrdenado = rankingOrdenado
+                .Where(r => r.Desempenho.AtingiuTodasAsMetas)
+                .ToList();
+        }
+
+        if (top > 0)
+            rankingOrdenado = rankingOrdenado.Take(top).ToList();
 
         for (int i = 0; i < rankingOrdenado.Count; i++)
             rankingOrdenado[i].Posicao = i + 1;
@@ -75,7 +103,9 @@ public class RankingServico : IRankingServico
             .Where(m => m.Ativa)
             .ToList();
 
-        var desempenho = new DesempenhoDto(funcionario, vendas, metas, dataInicio, dataFim);
+        var cfg = await _configuracoesService.ObterAsync();
+
+        var desempenho = _calculadoraDesempenho.Calcular(funcionario, vendas, metas, cfg.MetaMinima);
         return ResultadoOperacao<DesempenhoDto>.CriarSucesso(desempenho);
     }
 
@@ -110,31 +140,37 @@ public class RankingServico : IRankingServico
 
     public async Task<ResultadoOperacao<IEnumerable<RankingDto>>> ObterFuncionariosQueAtingiramMetasAsync(DateTime? dataInicio = null, DateTime? dataFim = null)
     {
+        var cfg = await _configuracoesService.ObterAsync();
+
         var ranking = await CalcularRankingAsync(new FiltroRankingDto
         {
             DataInicio = dataInicio,
-            DataFim = dataFim
+            DataFim = dataFim,
+            MetaMinima = cfg.MetaMinima
         });
 
         if (!ranking.Sucesso || ranking.Dados == null)
             return ResultadoOperacao<IEnumerable<RankingDto>>.CriarFalha("Erro ao calcular ranking.");
 
-        var atingiram = ranking.Dados.Where(r => r.Desempenho.PercentualAtingimentoMetas >= 100).ToList();
+        var atingiram = ranking.Dados.Where(r => r.Desempenho.AtingiuTodasAsMetas).ToList();
         return ResultadoOperacao<IEnumerable<RankingDto>>.CriarSucesso(atingiram);
     }
 
     public async Task<ResultadoOperacao<IEnumerable<RankingDto>>> ObterFuncionariosQueNaoAtingiramMetasAsync(DateTime? dataInicio = null, DateTime? dataFim = null)
     {
+        var cfg = await _configuracoesService.ObterAsync();
+
         var ranking = await CalcularRankingAsync(new FiltroRankingDto
         {
             DataInicio = dataInicio,
-            DataFim = dataFim
+            DataFim = dataFim,
+            MetaMinima = cfg.MetaMinima
         });
 
         if (!ranking.Sucesso || ranking.Dados == null)
             return ResultadoOperacao<IEnumerable<RankingDto>>.CriarFalha("Erro ao calcular ranking.");
 
-        var naoAtingiram = ranking.Dados.Where(r => r.Desempenho.PercentualAtingimentoMetas < 100).ToList();
+        var naoAtingiram = ranking.Dados.Where(r => !r.Desempenho.AtingiuTodasAsMetas).ToList();
         return ResultadoOperacao<IEnumerable<RankingDto>>.CriarSucesso(naoAtingiram);
     }
 
@@ -146,7 +182,6 @@ public class RankingServico : IRankingServico
         var existe = await _repositorioMeta.ExisteMetaAtivaNoPeriodo(inicio, fim);
 
         var metas = await FiltrarMetasAsync(dataInicio, dataFim);
-        Console.WriteLine($"[DEBUG API] Existem {metas.Count} metas ativas no período? {existe}");
 
         return ResultadoOperacao<bool>.CriarSucesso(existe);
     }

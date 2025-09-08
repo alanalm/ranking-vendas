@@ -7,6 +7,8 @@ namespace Ranking.Aplicacao.DTOs
         public DateTime? DataInicio { get; set; }
 
         public DateTime? DataFim { get; set; }
+        public int? Top { get; set; }
+        public int? MetaMinima { get; set; }
 
         public TipoOrdenacaoRanking TipoOrdenacao { get; set; } = TipoOrdenacaoRanking.DesempenhoGeral;
 

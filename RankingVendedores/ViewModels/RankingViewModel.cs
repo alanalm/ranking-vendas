@@ -1,11 +1,10 @@
 ﻿using MudBlazor;
+using MudBlazor.Charts;
 using Ranking.Aplicacao.DTOs;
 using Ranking.Aplicacao.Interfaces;
-using Ranking.Aplicacao.Servicos;
 using Ranking.Dominio.Enums;
 using RankingVendedores.Servicos.Interfaces;
 using System.Collections.ObjectModel;
-using System.Threading.Tasks;
 
 namespace RankingVendedores.ViewModels
 {
@@ -16,8 +15,8 @@ namespace RankingVendedores.ViewModels
 
         public ObservableCollection<RankingDto> Ranking { get; } = new();
 
-        private EstatisticasRankingDto? _estatisticas; 
-        public EstatisticasRankingDto? Estatisticas 
+        private EstatisticasRankingDto? _estatisticas;
+        public EstatisticasRankingDto? Estatisticas
         {
             get => _estatisticas;
             set => SetProperty(ref _estatisticas, value);
@@ -37,7 +36,7 @@ namespace RankingVendedores.ViewModels
             set => SetProperty(ref _dataFim, value);
         }
 
-        private DateRange? _periodoFiltro = new DateRange(DateTime.Today.AddDays(-30), DateTime.Today);
+        private DateRange? _periodoFiltro;
         public DateRange? PeriodoFiltro
         {
             get => _periodoFiltro;
@@ -49,13 +48,11 @@ namespace RankingVendedores.ViewModels
                     {
                         DataInicio = value.Start;
                         DataFim = value.End;
-
                         _ = CarregarRankingAsync();
                     }
                 }
             }
         }
-
 
         private TipoOrdenacaoRanking _tipoOrdenacao = TipoOrdenacaoRanking.DesempenhoGeral;
         public TipoOrdenacaoRanking TipoOrdenacao
@@ -98,23 +95,41 @@ namespace RankingVendedores.ViewModels
             get => _exibindoPeriodoAtual;
             set => SetProperty(ref _exibindoPeriodoAtual, value);
         }
+
+        private int _topFuncionarios = 10;
+        public int TopFuncionarios
+        {
+            get => _topFuncionarios;
+            set => SetProperty(ref _topFuncionarios, value);
+        }
+
+        private int? _metaMinima;
+        public int? MetaMinima
+        {
+            get => _metaMinima;
+            set => SetProperty(ref _metaMinima, value);
+        }
+
         public RankingViewModel(IRankingApiService apiService, IConfiguracoesService configuracoesService)
         {
             _apiService = apiService ?? throw new ArgumentNullException(nameof(apiService));
             _configuracoesService = configuracoesService ?? throw new ArgumentNullException(nameof(configuracoesService));
-
-            AplicarConfiguracoesGlobais();
         }
 
-        private async Task ConfiguracoesAlteradas()
+        // Inicialização assíncrona obrigatória
+        public async Task InicializarAsync()
         {
-           await AplicarConfiguracoesGlobais();
-            _ = CarregarRankingAsync();
+            await AplicarConfiguracoesGlobaisAsync();
+            await CarregarRankingHomeAsync();
+            await CarregarEstatisticasAsync();
         }
 
-        private async Task AplicarConfiguracoesGlobais()
+        private async Task AplicarConfiguracoesGlobaisAsync()
         {
             var cfg = await _configuracoesService.ObterAsync();
+            MetaMinima = cfg.MetaMinima;
+            TopFuncionarios = cfg.TopFuncionarios;
+
             var hoje = DateTime.Today;
 
             switch (cfg.PeriodoPadrao)
@@ -135,29 +150,12 @@ namespace RankingVendedores.ViewModels
                     DataFim = new DateTime(hoje.Year, 12, 31);
                     break;
             }
+
+            PeriodoFiltro = new DateRange(DataInicio.Value, DataFim.Value);
         }
-
-
-        /// <param name="apiService">Serviço para comunicação com a API.</param>
-        //public RankingViewModel(IRankingApiService apiService)
-        //{
-        //    _apiService = apiService ?? throw new ArgumentNullException(nameof(apiService));
-
-        //    // Inicializar com período atual (mês atual)
-        //    //var hoje = DateTime.Today;
-        //    //DataInicio = new DateTime(hoje.Year, hoje.Month, 1);
-        //    //DataFim = DataInicio.Value.AddMonths(1).AddDays(-1);
-
-        //    //Ajustando o período para os últimos dois meses para testes.
-        //    var hoje = DateTime.Today;
-        //    var doisMesesAtras = hoje.AddMonths(-2);
-        //    DataInicio = new DateTime(doisMesesAtras.Year, doisMesesAtras.Month, 1);
-        //    DataFim = hoje;
-        //}
 
         public async Task CarregarRankingAsync()
         {
-
             bool metasAtivas;
 
             try
@@ -211,7 +209,6 @@ namespace RankingVendedores.ViewModels
                     Ranking.Add(item);
                 }
 
-                // Carregar estatísticas
                 await CarregarEstatisticasAsync();
             }
         }
@@ -219,26 +216,40 @@ namespace RankingVendedores.ViewModels
         public async Task CarregarRankingPeriodoAtualAsync()
         {
             EstaCarregando = true;
-
             try
             {
-               await AplicarConfiguracoesGlobais();
+                // garante que DataInicio/DataFim/MetaMinima estejam corretos
+                await AplicarConfiguracoesGlobaisAsync();
+                ExibindoPeriodoAtual = true;
 
+                var cfg = await _configuracoesService.ObterAsync();
                 var filtro = new FiltroRankingDto
                 {
                     DataInicio = this.DataInicio,
                     DataFim = this.DataFim,
-                    TipoOrdenacao = TipoOrdenacao
+                    TipoOrdenacao = TipoOrdenacao,
+                    MetaMinima = cfg.MetaMinima,
+                    Top = 0
                 };
 
-                var ranking = await _apiService.CalcularRankingAsync(filtro);
+                var rankingCompleto = await _apiService.CalcularRankingAsync(filtro);
 
-                //var top = _configuracoesService.Configuracoes.TopFuncionarios;
-                //if (top > 0)
-                //    ranking = ranking.Take(top);
+                IEnumerable<RankingDto> rankingFiltrado = rankingCompleto;
+                if (ExistemMetasAtivas)
+                {
+                    if (MostrarApenasQueAtingiramMetas)
+                        rankingFiltrado = rankingFiltrado.Where(r => r.Desempenho.AtingiuTodasAsMetas);
+                    else if (MostrarApenasQueNaoAtingiramMetas)
+                        rankingFiltrado = rankingFiltrado.Where(r => !r.Desempenho.AtingiuTodasAsMetas);
+                }
+
+                rankingFiltrado = rankingFiltrado.OrderBy(r => r.Posicao);
+
+                if (TopFuncionarios > 0)
+                    rankingFiltrado = rankingFiltrado.Take(TopFuncionarios);
 
                 Ranking.Clear();
-                foreach (var item in ranking)
+                foreach (var item in rankingFiltrado)
                     Ranking.Add(item);
 
                 await CarregarEstatisticasAsync();
@@ -249,19 +260,34 @@ namespace RankingVendedores.ViewModels
             }
         }
 
+        public async Task CarregarRankingHomeAsync()
+        {
+            var cfg = await _configuracoesService.ObterAsync();
+            var filtro = new FiltroRankingDto
+            {
+                DataInicio = this.DataInicio,
+                DataFim = this.DataFim,
+                TipoOrdenacao = TipoOrdenacaoRanking.DesempenhoGeral,
+                Top = 0,
+                MetaMinima = MetaMinima ?? cfg.MetaMinima
+            };
+
+            var rankingCompleto = await _apiService.CalcularRankingAsync(filtro);
+            Ranking.Clear();
+            foreach (var r in rankingCompleto.Take(5))
+                Ranking.Add(r);
+
+            await CarregarEstatisticasAsync();
+        }
+
         public async Task CarregarEstatisticasAsync()
         {
-            var estatisticas = await ExecutarOperacaoAsync(async () =>
-            {
-                DateTime? dataInicio = PeriodoFiltro?.Start;
-                DateTime? dataFim = PeriodoFiltro?.End;
-                return await _apiService.CalcularEstatisticasRankingAsync(dataInicio, dataFim);
-            });
+            var estatisticas = await ExecutarOperacaoAsync(() =>
+                _apiService.CalcularEstatisticasRankingAsync(DataInicio, DataFim)
+            );
 
             if (estatisticas != null)
-            {
                 Estatisticas = estatisticas;
-            }
         }
 
         public async Task AplicarFiltrosAsync()
@@ -278,14 +304,11 @@ namespace RankingVendedores.ViewModels
 
         public async Task LimparFiltrosAsync()
         {
-            var hoje = DateTime.Today;
-            DataInicio = new DateTime(hoje.Year, hoje.Month, 1);
-            DataFim = DataInicio.Value.AddMonths(1).AddDays(-1);
-            TipoOrdenacao = TipoOrdenacaoRanking.DesempenhoGeral;
+            await AplicarConfiguracoesGlobaisAsync();
+            await CarregarRankingPeriodoAtualAsync();
+
             MostrarApenasQueAtingiramMetas = false;
             MostrarApenasQueNaoAtingiramMetas = false;
-
-            await CarregarRankingPeriodoAtualAsync();
         }
 
         public void SelecionarFuncionario(RankingDto funcionario)
@@ -298,21 +321,12 @@ namespace RankingVendedores.ViewModels
             FuncionarioSelecionado = null;
         }
 
-        public async Task<RankingDto?> ObterDesempenhoFuncionarioAsync(int funcionarioId)
-        {
-            return await ExecutarOperacaoAsync(async () =>
-            {
-                return await _apiService.ObterDesempenhoFuncionarioAsync(funcionarioId, DataInicio, DataFim);
-            });
-        }
-
         public async Task AlternarFiltroAtingiramMetasAsync()
         {
             MostrarApenasQueAtingiramMetas = !MostrarApenasQueAtingiramMetas;
             if (MostrarApenasQueAtingiramMetas)
-            {
                 MostrarApenasQueNaoAtingiramMetas = false;
-            }
+
             await CarregarRankingAsync();
         }
 
@@ -320,9 +334,8 @@ namespace RankingVendedores.ViewModels
         {
             MostrarApenasQueNaoAtingiramMetas = !MostrarApenasQueNaoAtingiramMetas;
             if (MostrarApenasQueNaoAtingiramMetas)
-            {
                 MostrarApenasQueAtingiramMetas = false;
-            }
+
             await CarregarRankingAsync();
         }
 
@@ -330,16 +343,17 @@ namespace RankingVendedores.ViewModels
         {
             if (DataInicio.HasValue && DataFim.HasValue)
             {
-                if (ExibindoPeriodoAtual)
-                {
-                    return $"Período Atual: {DataInicio.Value:dd/MM/yyyy} a {DataFim.Value:dd/MM/yyyy}";
-                }
-                else
-                {
-                    return $"Período: {DataInicio.Value:dd/MM/yyyy} a {DataFim.Value:dd/MM/yyyy}";
-                }
+                return ExibindoPeriodoAtual
+                    ? $"Período Atual: {DataInicio.Value:dd/MM/yyyy} a {DataFim.Value:dd/MM/yyyy}"
+                    : $"Período: {DataInicio.Value:dd/MM/yyyy} a {DataFim.Value:dd/MM/yyyy}";
             }
+
             return "Todos os períodos";
+        }
+
+        public async Task AtualizarHomeAsync()
+        {
+            await CarregarRankingHomeAsync();
         }
     }
 }

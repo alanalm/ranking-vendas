@@ -5,7 +5,7 @@ using Ranking.Dominio.Enums;
 
 public class CalculadoraDesempenhoServico : ICalculadoraDesempenhoServico
 {
-    public DesempenhoDto Calcular(Funcionario funcionario, List<Venda> vendas, List<Meta> metas)
+    public DesempenhoDto Calcular(Funcionario funcionario, List<Venda> vendas, List<Meta> metas, int metaMinima, TipoIndicador? indicadorSelecionado = null)
     {
         var quantidadeVendas = vendas.Count;
         var valorTotalVendas = vendas.Sum(v => v.Valor);
@@ -29,26 +29,49 @@ public class CalculadoraDesempenhoServico : ICalculadoraDesempenhoServico
             ? (valorTotalVendas / metaValor) * 100
             : 0;
 
+        bool atingiuMeta;
+        if (indicadorSelecionado == null) // Geral
+        {
+            atingiuMeta = percentualQuantidade >= metaMinima && percentualValor >= metaMinima;
+        }
+        else if (indicadorSelecionado == TipoIndicador.Quantidade)
+        {
+            atingiuMeta = percentualQuantidade >= metaMinima;
+        }
+        else // Receita
+        {
+            atingiuMeta = percentualValor >= metaMinima;
+        }
+
         var percentualAtingimento = Math.Round(Math.Max(percentualQuantidade, percentualValor), 2);
-        var atingiuTodasAsMetas = percentualQuantidade >= 100 && percentualValor >= 100;
+        var atingiuQuantidade = metaQuantidade > 0 ? percentualQuantidade >= metaMinima : true;
+        var atingiuValor = metaValor > 0 ? percentualValor >= metaMinima : true;
+
+        Console.WriteLine($"Funcionario: {funcionario.Nome}, MetaQtd: {metaQuantidade}, MetaVal: {metaValor}, PercentQtd: {percentualQuantidade}, PercentVal: {percentualValor}, AtingiuTodas: {atingiuQuantidade && atingiuValor}");
+
 
         return new DesempenhoDto
         {
-            Geral = percentualAtingimento,
+            Geral = Math.Max(percentualQuantidade, percentualValor),
             QuantidadeVendas = quantidadeVendas,
             ValorVendas = valorTotalVendas,
             MetaQuantidade = metaQuantidade,
             MetaValor = metaValor,
             PercentualQuantidade = percentualQuantidade,
             PercentualValor = percentualValor,
-            PercentualAtingimentoMetas = Math.Round((percentualQuantidade + percentualValor) / 2, 2),
-            AtingiuTodasAsMetas = atingiuTodasAsMetas
+            PercentualAtingimentoMetas = (metaQuantidade + metaValor) > 0
+            ? Math.Round((percentualQuantidade + percentualValor) / 2, 2)
+            : 0,
+            AtingiuMetaQuantidade = atingiuQuantidade,
+            AtingiuMetaValor = atingiuValor,
+            AtingiuTodasAsMetas = atingiuQuantidade && atingiuValor
         };
     }
 
-    public RankingDto CalcularRanking(Funcionario funcionario, List<Venda> vendasFuncionario, List<Meta> metas, DateTime? dataInicio, DateTime? dataFim)
+    public RankingDto CalcularRanking(Funcionario funcionario, List<Venda> vendasFuncionario, List<Meta> metas, DateTime? dataInicio, DateTime? dataFim,
+        int metaMinima, TipoIndicador? indicadorSelecionado = null)
     {
-        var desempenho = Calcular(funcionario, vendasFuncionario, metas);
+        var desempenho = Calcular(funcionario, vendasFuncionario, metas, metaMinima, indicadorSelecionado);
 
         return new RankingDto
         {

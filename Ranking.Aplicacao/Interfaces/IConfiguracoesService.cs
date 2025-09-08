@@ -6,7 +6,7 @@ namespace Ranking.Aplicacao.Interfaces
     {
         Task<ConfiguracoesDto> ObterAsync();
         Task SalvarAsync(ConfiguracoesDto configuracoes);
-
+        Task<int> ObterMetaMinimaAsync();
         void AtualizarConfiguracoes(ConfiguracoesDto novas);
     }
 }

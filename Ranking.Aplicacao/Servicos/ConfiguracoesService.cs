@@ -18,13 +18,20 @@ namespace Ranking.Aplicacao.Servicos
             // Inicializa com valores padrão
             Configuracoes = new ConfiguracoesDto
             {
-                PeriodoPadrao = PeriodoPadrao.Mensal
+                PeriodoPadrao = PeriodoPadrao.Mensal,
+                MetaMinima = 100,
+                TopFuncionarios = 10,
             };
         }
 
         public async Task<ConfiguracoesDto> ObterAsync()
         {
             return await Task.FromResult(Configuracoes);
+        }
+
+        public Task<int> ObterMetaMinimaAsync()
+        {
+            return Task.FromResult(Configuracoes.MetaMinima);
         }
 
         public Task SalvarAsync(ConfiguracoesDto configuracoes)
